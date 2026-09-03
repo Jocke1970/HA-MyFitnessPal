@@ -315,29 +315,51 @@ cards:
     custom_fields:
       header: >
         [[[
-          return `<div class="mfp-diary-header"><span>Diary</span><span class="mfp-see-all">See all</span></div>`;
+          return `<div class="mfp-diary-header">Diary</div>`;
         ]]]
       diary: >
         [[[
           const entries = Array.isArray(entity?.attributes?.entries) ? entity.attributes.entries : [];
           if (!entries.length) return '<div class="mfp-empty">No food logged yet.</div>';
 
-          const mealNames = { Breakfast: 'Breakfast', Lunch: 'Lunch', Dinner: 'Dinner', Snacks: 'Snacks' };
-          const mealOrder = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
-          const grouped = {};
+          const normalizeMeal = value => String(value || 'Other')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ');
 
-          for (const item of entries) {
-            const meal = item?.meal || 'Other';
-            (grouped[meal] ??= []).push(item);
-          }
-
-          const orderedMeals = [
-            ...mealOrder.filter(m => grouped[m]),
-            ...Object.keys(grouped).filter(m => !mealOrder.includes(m))
+          const mealDefs = [
+            { id: 'breakfast', rank: 0, label: 'Breakfast', aliases: ['breakfast', 'frukost'] },
+            { id: 'lunch', rank: 1, label: 'Lunch', aliases: ['lunch'] },
+            { id: 'snacks', rank: 2, label: 'Snacks', aliases: ['snacks', 'snack', 'mellanmal'] },
+            { id: 'dinner', rank: 3, label: 'Dinner', aliases: ['dinner', 'middag'] },
+            { id: 'evening_snacks', rank: 4, label: 'Evening snacks', aliases: ['eveningsnacks', 'evening snacks', 'evening snack', 'kvallssnacks', 'kvalls snacks', 'kvallssnack'] },
+            { id: 'supplements', rank: 5, label: 'Supplements', aliases: ['kosttillskott', 'supplements', 'supplement'] },
           ];
 
-          return orderedMeals.map(meal => {
-            const items = grouped[meal];
+          const mealInfo = raw => {
+            const normalized = normalizeMeal(raw);
+            const def = mealDefs.find(item => item.aliases.includes(normalized));
+            return def
+              ? { key: def.id, rank: def.rank, label: def.label }
+              : { key: `other:${normalized}`, rank: 100, label: raw || 'Other' };
+          };
+
+          const grouped = {};
+          for (const item of entries) {
+            const info = mealInfo(item?.meal);
+            if (!grouped[info.key]) grouped[info.key] = { info, items: [] };
+            grouped[info.key].items.push(item);
+          }
+
+          const orderedMeals = Object.values(grouped).sort((a, b) =>
+            a.info.rank - b.info.rank || a.info.label.localeCompare(b.info.label, 'en')
+          );
+
+          return orderedMeals.map(group => {
+            const items = group.items;
             const kcal = items.reduce((sum, item) => {
               const value = Number(item?.nutrients?.energy);
               return sum + (Number.isFinite(value) ? value : 0);
@@ -361,7 +383,7 @@ cards:
               return `<div class="mfp-food-row"><span>${foodName}</span><span>${portion}</span></div>`;
             }).join('');
 
-            return `<div class="mfp-meal"><div class="mfp-meal-head"><span>${mealNames[meal] || meal}</span><span>${Math.round(kcal)} kcal</span></div>${foods}</div>`;
+            return `<div class="mfp-meal"><div class="mfp-meal-head"><span>${group.info.label}</span><span>${Math.round(kcal)} kcal</span></div>${foods}</div>`;
           }).join('');
         ]]]
     styles:
@@ -378,8 +400,7 @@ cards:
         diary:
           - width: 100%
     extra_styles: |
-      .mfp-diary-header { display: flex; align-items: center; justify-content: space-between; font-size: 20px; font-weight: 600; }
-      .mfp-see-all { font-size: 14px; font-weight: 500; opacity: .75; }
+      .mfp-diary-header { font-size: 20px; font-weight: 600; }
       .mfp-meal { padding: 15px 16px; border-radius: 15px; background: rgba(255, 255, 255, 0.045); }
       .mfp-meal + .mfp-meal { margin-top: 10px; }
       .mfp-meal-head { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 600; margin-bottom: 9px; }
