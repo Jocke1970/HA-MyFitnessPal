@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0-beta.1
+
+- Add read-only polling of today's MyFitnessPal exercise diary.
+- Add Exercise calories, Exercise duration and Exercise diary sensors.
+- Keep exercise retrieval fail-soft so an exercise-endpoint problem does not take down nutrition data.
+- Separate real exercise entries from MyFitnessPal partner calorie-adjustment entries so Garmin Connect adjustments are not counted as workouts.
+- Normalize cardio duration, calories, start time, METS and optional heart-rate fields.
+- Normalize strength entries with sets, reps per set, total reps and weight.
+- Normalize strength weight to kilograms while preserving the raw MyFitnessPal value and unit for diagnostics.
+- Preserve partner calorie-adjustment metadata, including Garmin Connect step and calorie-projection data, separately from exercise totals.
+- Do not use the nested `exercise.deleted` flag as a diary-entry filter, because valid tested entries may still carry that flag.
+
 ## 0.3.0
 
 - Promote the tested 0.3.0 beta work to stable.
