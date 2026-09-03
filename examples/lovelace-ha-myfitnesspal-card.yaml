@@ -1,0 +1,14 @@
+# HA-MyFitnessPal first-party Lovelace card - Swedish example
+#
+# The card JavaScript is bundled with the integration and auto-loaded by
+# HA-MyFitnessPal. No custom:button-card dependency is required for this card.
+#
+# Tested entity IDs in the development installation:
+#   sensor.myfitnesspal_naringsdagbok
+#   sensor.ovrigt_myfitnesspal_traningsdagbok
+
+type: custom:ha-myfitnesspal-card
+nutrition_entity: sensor.myfitnesspal_naringsdagbok
+exercise_entity: sensor.ovrigt_myfitnesspal_traningsdagbok
+language: sv
+show_training: true
