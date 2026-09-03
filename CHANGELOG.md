@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0-beta.4
+## 0.4.0-beta.5
 
 - Merge the existing nutrition dashboard into the bundled first-party Lovelace card.
 - Add Calories with consumed amount, goal, remaining amount and progress bar.
@@ -12,11 +12,18 @@
 - Fix missing cardio heart-rate values being rendered as false `0 bpm` values by treating null/empty values as unavailable.
 - Use locale-aware number formatting in the first-party card.
 - Keep strength weight display aligned with Home Assistant's configured mass unit.
-- Supersede the mistakenly targeted `0.4.0-beta.3` prerelease with the intended build from `dev`.
+- Load the bundled card through a small diagnostic frontend loader so module-load failures are visible in the browser console.
+- Add a release sanity checker that validates manifest/loader version wiring and confirms that the card still registers `ha-myfitnesspal-card`.
+- Add a GitHub Actions sanity workflow that validates manifest JSON and runs `node --check` on both frontend JavaScript files before a release is tagged.
+- Supersede the incorrectly targeted/stale beta.3 and beta.4 prereleases.
+
+## 0.4.0-beta.4
+
+- Release bookkeeping only: this tag was created before the beta.4 version bump had landed on `dev`, so the tagged build still reported beta.3 internally. Superseded by `0.4.0-beta.5`.
 
 ## 0.4.0-beta.3
 
-- Release bookkeeping only: this prerelease was accidentally targeted incorrectly and is superseded by `0.4.0-beta.4`.
+- Release bookkeeping only: this prerelease was accidentally targeted at `main` and is superseded by `0.4.0-beta.5`.
 
 ## 0.4.0-beta.2
 
