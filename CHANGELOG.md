@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0-beta.2
+
+- Add the first HA-MyFitnessPal first-party Lovelace card as a bundled Web Component.
+- Auto-serve and auto-load the card from the integration, with no `custom:button-card` dependency for the new card.
+- Add real per-meal expand/collapse state for the food diary.
+- Add working `Se alla` / `See all` and `Dölj alla` / `Hide all` controls for meal details.
+- Add per-workout expand/collapse state for cardio and strength entries.
+- Render cardio and strength summaries differently, including sets, reps and normalized weight for strength entries.
+- Follow Home Assistant's configured mass unit when displaying normalized strength weight.
+- Add Swedish and English labels to the bundled card.
+- Add a minimal Lovelace example using the first-party card.
+
 ## 0.4.0-beta.1
 
 - Add read-only polling of today's MyFitnessPal exercise diary.
