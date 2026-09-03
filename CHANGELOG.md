@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0-beta.3
+## 0.4.0-beta.4
 
 - Merge the existing nutrition dashboard into the bundled first-party Lovelace card.
 - Add Calories with consumed amount, goal, remaining amount and progress bar.
@@ -12,6 +12,11 @@
 - Fix missing cardio heart-rate values being rendered as false `0 bpm` values by treating null/empty values as unavailable.
 - Use locale-aware number formatting in the first-party card.
 - Keep strength weight display aligned with Home Assistant's configured mass unit.
+- Supersede the mistakenly targeted `0.4.0-beta.3` prerelease with the intended build from `dev`.
+
+## 0.4.0-beta.3
+
+- Release bookkeeping only: this prerelease was accidentally targeted incorrectly and is superseded by `0.4.0-beta.4`.
 
 ## 0.4.0-beta.2
 
