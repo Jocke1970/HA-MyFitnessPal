@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anslut MyFitnessPal",
+        "description": "Logga in en gång. Lösenordet används bara under installationen och sparas inte av integrationen.",
+        "data": {
+          "username": "E-post eller användarnamn",
+          "password": "Lösenord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Återanslut MyFitnessPal",
+        "description": "Ange dina MyFitnessPal-uppgifter igen för att förnya åtkomsten.",
+        "data": {
+          "username": "E-post eller användarnamn",
+          "password": "Lösenord"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunde inte ansluta till MyFitnessPal.",
+      "invalid_auth": "MyFitnessPal nekade inloggningsuppgifterna.",
+      "no_refresh_token": "MyFitnessPal skickade ingen refresh-token.",
+      "wrong_account": "Logga in med samma MyFitnessPal-konto.",
+      "unknown": "Ett oväntat fel inträffade."
+    },
+    "abort": {
+      "already_configured": "Det här MyFitnessPal-kontot är redan konfigurerat."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "calories": {"name": "Kalorier"},
+      "carbohydrates": {"name": "Kolhydrater"},
+      "protein": {"name": "Protein"},
+      "fat": {"name": "Fett"},
+      "fiber": {"name": "Fiber"},
+      "sugar": {"name": "Socker"},
+      "diary": {"name": "Näringsdagbok"}
+    }
+  }
+}

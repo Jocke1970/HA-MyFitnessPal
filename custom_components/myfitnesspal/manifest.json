@@ -1,0 +1,21 @@
+{
+  "domain": "myfitnesspal",
+  "name": "MyFitnessPal",
+  "codeowners": [
+    "@Jocke1970"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Jocke1970/HA-MyFitnessPal",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Jocke1970/HA-MyFitnessPal/issues",
+  "loggers": [
+    "mfp_api"
+  ],
+  "requirements": [
+    "mfp-api@git+https://github.com/Rift-Walker/mfp-api.git@89b61eb5bee9062e62ccc98101b1c5527e5c0775"
+  ],
+  "single_config_entry": true,
+  "version": "0.2.0"
+}

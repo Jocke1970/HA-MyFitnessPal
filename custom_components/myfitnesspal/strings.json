@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect MyFitnessPal",
+        "description": "Sign in once. Your password is used only during setup and is not stored by the integration.",
+        "data": {
+          "username": "Email or username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect MyFitnessPal",
+        "description": "Enter your MyFitnessPal credentials again to renew access.",
+        "data": {
+          "username": "Email or username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to MyFitnessPal.",
+      "invalid_auth": "The MyFitnessPal credentials were rejected.",
+      "no_refresh_token": "MyFitnessPal did not return a refresh token.",
+      "wrong_account": "Please sign in with the same MyFitnessPal account.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This MyFitnessPal account is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "calories": {"name": "Calories"},
+      "carbohydrates": {"name": "Carbohydrates"},
+      "protein": {"name": "Protein"},
+      "fat": {"name": "Fat"},
+      "fiber": {"name": "Fiber"},
+      "sugar": {"name": "Sugar"},
+      "diary": {"name": "Nutrition diary"}
+    }
+  }
+}
