@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfEnergy, UnitOfMass
+from homeassistant.const import UnitOfEnergy, UnitOfMass, UnitOfVolume
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -93,7 +93,7 @@ async def async_setup_entry(
     coordinator: MyFitnessPalCoordinator = entry.runtime_data
     async_add_entities(
         [MyFitnessPalNutrientSensor(coordinator, description) for description in SENSORS]
-        + [MyFitnessPalDiarySensor(coordinator)]
+        + [MyFitnessPalWaterSensor(coordinator), MyFitnessPalDiarySensor(coordinator)]
     )
 
 
@@ -149,6 +149,30 @@ class MyFitnessPalNutrientSensor(MyFitnessPalEntity):
         return attrs
 
 
+class MyFitnessPalWaterSensor(MyFitnessPalEntity):
+    """Today's read-only water intake."""
+
+    _attr_translation_key = "water"
+    _attr_icon = "mdi:cup-water"
+    _attr_native_unit_of_measurement = UnitOfVolume.MILLILITERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator: MyFitnessPalCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.domain_user_id}_water"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's water intake in milliliters."""
+        return self.coordinator.data.water_ml
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the date represented by the value."""
+        return {"date": self.coordinator.data.date}
+
+
 class MyFitnessPalDiarySensor(MyFitnessPalEntity):
     """Expose a compact read-only view of today's food diary."""
 
@@ -174,4 +198,5 @@ class MyFitnessPalDiarySensor(MyFitnessPalEntity):
             "goals": self.coordinator.data.goals,
             "goal_source": self.coordinator.data.goal_source,
             "remaining": self.coordinator.data.remaining,
+            "water_ml": self.coordinator.data.water_ml,
         }
