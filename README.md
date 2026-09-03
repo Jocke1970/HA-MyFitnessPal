@@ -34,19 +34,20 @@ The **Nutrition diary** sensor exposes today's normalized food entries as attrib
 
 ## Lovelace dashboard
 
-The `dev` branch includes an experimental read-only Lovelace example inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
+The repository includes read-only Lovelace examples inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
 
-The example provides:
+The examples provide:
 
 - a calorie card with consumed, goal, remaining and progress bar
 - carbohydrates, fat and protein with individual goal progress bars
 - a diary card grouped by meal with food entries and calories
 
-It intentionally does **not** include food logging controls because this integration is read-only.
+They intentionally do **not** include food logging controls because this integration is read-only.
 
-See [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml).
+- Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
+- English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
 
-The example currently requires [`custom:button-card`](https://github.com/custom-cards/button-card). Entity IDs may need to be adjusted if Home Assistant generated different IDs in your installation.
+The examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). Entity IDs may need to be adjusted if Home Assistant generated different IDs in your installation.
 
 ## Installation
 
@@ -102,11 +103,14 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 - Nutrition data is fetched directly from MyFitnessPal by your Home Assistant instance.
 - This project does not run a proxy, relay or external cloud service of its own.
 
+## Development workflow
+
+- `main` tracks the current tested/stable version.
+- `dev` is used for active development and UI experiments before promotion to `main`.
+
 ## Current status
 
-Current integration version: **0.2.0**
-
-`main` tracks the current tested version. Active development and UI experiments happen on `dev` before being promoted to `main`.
+Current integration version: **0.2.1**
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
