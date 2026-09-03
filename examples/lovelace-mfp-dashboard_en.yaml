@@ -2,20 +2,23 @@
 # Branch: dev
 # Requires: custom:button-card
 #
-# IMPORTANT:
-# Home Assistant entity IDs are created when entities are first registered and
-# do not change just because this dashboard uses English labels. The IDs below
-# match the currently tested installation. If your installation generated
-# different entity IDs, replace them accordingly.
+# The whole dashboard reads from one entity:
+#   sensor.myfitnesspal_naringsdagbok
 #
-# This card is intentionally read-only. Tapping the diary opens the
-# Home Assistant more-info dialog for the Nutrition diary sensor.
+# That entity already exposes totals, goals, remaining values, diary entries
+# and water_ml as attributes. Using one source avoids language-dependent entity
+# IDs for individual nutrient sensors.
+#
+# If your installation generated another entity ID for Nutrition diary, replace
+# only that one ID throughout this example.
+#
+# This card is intentionally read-only.
 
 type: vertical-stack
 cards:
   # Calories
   - type: custom:button-card
-    entity: sensor.myfitnesspal_kalorier
+    entity: sensor.myfitnesspal_naringsdagbok
     show_icon: false
     show_name: false
     show_state: false
@@ -25,29 +28,42 @@ cards:
       title: Calories
       consumed: >
         [[[
-          const value = Number(entity.state);
-          const goal = Number(entity.attributes.goal);
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.energy);
+          const goal = n(goals.energy);
           const valueText = Number.isFinite(value) ? Math.round(value) : '–';
           const goalText = Number.isFinite(goal) ? Math.round(goal) : '–';
           return `<span class="mfp-main-value">${valueText} kcal</span><span class="mfp-muted"> / ${goalText}</span>`;
         ]]]
       remaining: >
         [[[
-          const remaining = Number(entity.attributes.remaining);
-          if (!Number.isFinite(remaining)) return '<span class="mfp-muted">– remaining</span>';
-          return `<span class="mfp-remaining">${Math.max(0, Math.round(remaining))}</span><span class="mfp-muted"> remaining</span>`;
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const remaining = a.remaining || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.energy);
+          const goal = n(goals.energy);
+          let rem = n(remaining.energy);
+          if (!Number.isFinite(rem) && Number.isFinite(value) && Number.isFinite(goal)) rem = goal - value;
+          if (!Number.isFinite(rem)) return '<span class="mfp-muted">– remaining</span>';
+          return `<span class="mfp-remaining">${Math.max(0, Math.round(rem))}</span><span class="mfp-muted"> remaining</span>`;
         ]]]
       bar: >
         [[[
-          const value = Number(entity.state);
-          const goal = Number(entity.attributes.goal);
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.energy);
+          const goal = n(goals.energy);
           const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
             ? Math.min(100, Math.max(0, value / goal * 100))
             : 0;
-          return `
-            <div class="mfp-track">
-              <div class="mfp-fill mfp-calories" style="width:${pct}%"></div>
-            </div>`;
+          return `<div class="mfp-track"><div class="mfp-fill mfp-calories" style="width:${pct}%"></div></div>`;
         ]]]
     styles:
       card:
@@ -72,91 +88,63 @@ cards:
         bar:
           - width: 100%
     extra_styles: |
-      .mfp-main-value {
-        font-size: 30px;
-        font-weight: 700;
-      }
-      .mfp-remaining {
-        font-size: 28px;
-        font-weight: 700;
-      }
-      .mfp-muted {
-        font-size: 22px;
-        opacity: 0.42;
-      }
+      .mfp-main-value { font-size: 30px; font-weight: 700; }
+      .mfp-remaining { font-size: 28px; font-weight: 700; }
+      .mfp-muted { font-size: 22px; opacity: 0.42; }
       .mfp-track {
-        width: 100%;
-        height: 14px;
-        border-radius: 999px;
-        overflow: hidden;
+        width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
         background: rgba(0, 0, 0, 0.28);
       }
-      .mfp-fill {
-        height: 100%;
-        border-radius: inherit;
-        transition: width .35s ease;
-      }
-      .mfp-calories {
-        background: #18bdf2;
-      }
+      .mfp-fill { height: 100%; border-radius: inherit; transition: width .35s ease; }
+      .mfp-calories { background: #18bdf2; }
 
   # Macros
   - type: custom:button-card
+    entity: sensor.myfitnesspal_naringsdagbok
     show_icon: false
     show_name: false
     show_state: false
-    triggers_update:
-      - sensor.myfitnesspal_kolhydrater
-      - sensor.myfitnesspal_fett
-      - sensor.myfitnesspal_protein
+    tap_action:
+      action: more-info
     custom_fields:
       carbohydrates: >
         [[[
-          const e = states['sensor.myfitnesspal_kolhydrater'];
-          if (!e) return 'Carbohydrates<br><b>–</b>';
-          const value = Number(e.state);
-          const goal = Number(e.attributes.goal);
-          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
-            ? Math.min(100, Math.max(0, value / goal * 100))
-            : 0;
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.carbohydrates);
+          const goal = n(goals.carbohydrates);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0;
           const v = Number.isFinite(value) ? Math.round(value) : '–';
           const g = Number.isFinite(goal) ? Math.round(goal) : '–';
-          return `
-            <div class="mfp-macro-title">Carbohydrates</div>
-            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
-            <div class="mfp-track"><div class="mfp-fill mfp-carbs" style="width:${pct}%"></div></div>`;
+          return `<div class="mfp-macro-title">Carbohydrates</div><div class="mfp-macro-value">${v} g <span>/ ${g}</span></div><div class="mfp-track"><div class="mfp-fill mfp-carbs" style="width:${pct}%"></div></div>`;
         ]]]
       fat: >
         [[[
-          const e = states['sensor.myfitnesspal_fett'];
-          if (!e) return 'Fat<br><b>–</b>';
-          const value = Number(e.state);
-          const goal = Number(e.attributes.goal);
-          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
-            ? Math.min(100, Math.max(0, value / goal * 100))
-            : 0;
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.fat);
+          const goal = n(goals.fat);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0;
           const v = Number.isFinite(value) ? Math.round(value) : '–';
           const g = Number.isFinite(goal) ? Math.round(goal) : '–';
-          return `
-            <div class="mfp-macro-title">Fat</div>
-            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
-            <div class="mfp-track"><div class="mfp-fill mfp-fat" style="width:${pct}%"></div></div>`;
+          return `<div class="mfp-macro-title">Fat</div><div class="mfp-macro-value">${v} g <span>/ ${g}</span></div><div class="mfp-track"><div class="mfp-fill mfp-fat" style="width:${pct}%"></div></div>`;
         ]]]
       protein: >
         [[[
-          const e = states['sensor.myfitnesspal_protein'];
-          if (!e) return 'Protein<br><b>–</b>';
-          const value = Number(e.state);
-          const goal = Number(e.attributes.goal);
-          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
-            ? Math.min(100, Math.max(0, value / goal * 100))
-            : 0;
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.protein);
+          const goal = n(goals.protein);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0;
           const v = Number.isFinite(value) ? Math.round(value) : '–';
           const g = Number.isFinite(goal) ? Math.round(goal) : '–';
-          return `
-            <div class="mfp-macro-title">Protein</div>
-            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
-            <div class="mfp-track"><div class="mfp-fill mfp-protein" style="width:${pct}%"></div></div>`;
+          return `<div class="mfp-macro-title">Protein</div><div class="mfp-macro-value">${v} g <span>/ ${g}</span></div><div class="mfp-track"><div class="mfp-fill mfp-protein" style="width:${pct}%"></div></div>`;
         ]]]
     styles:
       card:
@@ -174,35 +162,78 @@ cards:
         protein:
           - text-align: left
     extra_styles: |
-      .mfp-macro-title {
-        font-size: 21px;
-        margin-bottom: 10px;
-      }
-      .mfp-macro-value {
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 22px;
-        white-space: nowrap;
-      }
-      .mfp-macro-value span {
-        font-weight: 400;
-        opacity: 0.55;
-      }
+      .mfp-macro-title { font-size: 21px; margin-bottom: 10px; }
+      .mfp-macro-value { font-size: 24px; font-weight: 700; margin-bottom: 22px; white-space: nowrap; }
+      .mfp-macro-value span { font-weight: 400; opacity: 0.55; }
       .mfp-track {
-        width: 100%;
-        height: 14px;
-        border-radius: 999px;
-        overflow: hidden;
+        width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
         background: rgba(0, 0, 0, 0.28);
       }
-      .mfp-fill {
-        height: 100%;
-        border-radius: inherit;
-        transition: width .35s ease;
-      }
+      .mfp-fill { height: 100%; border-radius: inherit; transition: width .35s ease; }
       .mfp-carbs { background: #00c9bd; }
       .mfp-fat { background: #cc62df; }
       .mfp-protein { background: #ffac18; }
+
+  # Water / Fiber / Sugar
+  - type: custom:button-card
+    entity: sensor.myfitnesspal_naringsdagbok
+    show_icon: false
+    show_name: false
+    show_state: false
+    tap_action:
+      action: more-info
+    custom_fields:
+      water: >
+        [[[
+          const a = entity?.attributes || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(a.water_ml);
+          const text = Number.isFinite(value) ? `${Math.round(value)} mL` : '–';
+          return `<div class="mfp-small-title">Water</div><div class="mfp-small-value">${text}</div>`;
+        ]]]
+      fiber: >
+        [[[
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.fiber);
+          const goal = n(goals.fiber);
+          const v = Number.isFinite(value) ? `${Math.round(value * 10) / 10} g` : '–';
+          const g = Number.isFinite(goal) ? ` / ${Math.round(goal)} g` : '';
+          return `<div class="mfp-small-title">Fiber</div><div class="mfp-small-value">${v}<span>${g}</span></div>`;
+        ]]]
+      sugar: >
+        [[[
+          const a = entity?.attributes || {};
+          const totals = a.totals || {};
+          const goals = a.goals || {};
+          const n = v => (v === null || v === undefined || v === '') ? NaN : Number(v);
+          const value = n(totals.sugar);
+          const goal = n(goals.sugar);
+          const v = Number.isFinite(value) ? `${Math.round(value * 10) / 10} g` : '–';
+          const g = Number.isFinite(goal) ? ` / ${Math.round(goal)} g` : '';
+          return `<div class="mfp-small-title">Sugar</div><div class="mfp-small-value">${v}<span>${g}</span></div>`;
+        ]]]
+    styles:
+      card:
+        - padding: 20px 28px
+        - border-radius: 22px
+      grid:
+        - grid-template-areas: '"water fiber sugar"'
+        - grid-template-columns: repeat(3, 1fr)
+        - column-gap: 22px
+      custom_fields:
+        water:
+          - text-align: left
+        fiber:
+          - text-align: left
+        sugar:
+          - text-align: left
+    extra_styles: |
+      .mfp-small-title { font-size: 16px; opacity: .72; margin-bottom: 7px; }
+      .mfp-small-value { font-size: 20px; font-weight: 700; white-space: nowrap; }
+      .mfp-small-value span { font-weight: 400; opacity: .5; }
 
   # Diary
   - type: custom:button-card
@@ -215,33 +246,19 @@ cards:
     custom_fields:
       header: >
         [[[
-          return `
-            <div class="mfp-diary-header">
-              <span>Diary</span>
-              <span class="mfp-see-all">See all</span>
-            </div>`;
+          return `<div class="mfp-diary-header"><span>Diary</span><span class="mfp-see-all">See all</span></div>`;
         ]]]
       diary: >
         [[[
-          const entries = Array.isArray(entity.attributes.entries)
-            ? entity.attributes.entries
-            : [];
+          const entries = Array.isArray(entity?.attributes?.entries) ? entity.attributes.entries : [];
+          if (!entries.length) return '<div class="mfp-empty">No food logged yet.</div>';
 
-          if (!entries.length) {
-            return '<div class="mfp-empty">No food logged yet.</div>';
-          }
-
-          const mealNames = {
-            Breakfast: 'Breakfast',
-            Lunch: 'Lunch',
-            Dinner: 'Dinner',
-            Snacks: 'Snacks'
-          };
+          const mealNames = { Breakfast: 'Breakfast', Lunch: 'Lunch', Dinner: 'Dinner', Snacks: 'Snacks' };
           const mealOrder = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
           const grouped = {};
 
           for (const item of entries) {
-            const meal = item.meal || 'Other';
+            const meal = item?.meal || 'Other';
             (grouped[meal] ??= []).push(item);
           }
 
@@ -258,8 +275,8 @@ cards:
             }, 0);
 
             const foods = items.map(item => {
-              const servings = Number(item.servings);
-              const size = item.serving_size || {};
+              const servings = Number(item?.servings);
+              const size = item?.serving_size || {};
               const unit = size.unit || '';
               const value = Number(size.value);
               let portion = '';
@@ -271,18 +288,11 @@ cards:
                 portion = translatedUnit ? `${rounded} ${translatedUnit}` : `${rounded}`;
               }
 
-              const foodName = item.food || 'Unknown food';
+              const foodName = item?.food || 'Unknown food';
               return `<div class="mfp-food-row"><span>${foodName}</span><span>${portion}</span></div>`;
             }).join('');
 
-            return `
-              <div class="mfp-meal">
-                <div class="mfp-meal-head">
-                  <span>${mealNames[meal] || meal}</span>
-                  <span>${Math.round(kcal)} kcal</span>
-                </div>
-                ${foods}
-              </div>`;
+            return `<div class="mfp-meal"><div class="mfp-meal-head"><span>${mealNames[meal] || meal}</span><span>${Math.round(kcal)} kcal</span></div>${foods}</div>`;
           }).join('');
         ]]]
     styles:
@@ -299,51 +309,12 @@ cards:
         diary:
           - width: 100%
     extra_styles: |
-      .mfp-diary-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 20px;
-        font-weight: 600;
-      }
-      .mfp-see-all {
-        font-size: 14px;
-        font-weight: 500;
-        opacity: .75;
-      }
-      .mfp-meal {
-        padding: 15px 16px;
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.045);
-      }
-      .mfp-meal + .mfp-meal {
-        margin-top: 10px;
-      }
-      .mfp-meal-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 9px;
-      }
-      .mfp-food-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        font-size: 14px;
-        opacity: .68;
-        padding-top: 4px;
-      }
-      .mfp-food-row span:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .mfp-food-row span:last-child {
-        white-space: nowrap;
-      }
-      .mfp-empty {
-        opacity: .6;
-        padding: 8px 0;
-      }
+      .mfp-diary-header { display: flex; align-items: center; justify-content: space-between; font-size: 20px; font-weight: 600; }
+      .mfp-see-all { font-size: 14px; font-weight: 500; opacity: .75; }
+      .mfp-meal { padding: 15px 16px; border-radius: 15px; background: rgba(255, 255, 255, 0.045); }
+      .mfp-meal + .mfp-meal { margin-top: 10px; }
+      .mfp-meal-head { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 600; margin-bottom: 9px; }
+      .mfp-food-row { display: flex; justify-content: space-between; gap: 14px; font-size: 14px; opacity: .68; padding-top: 4px; }
+      .mfp-food-row span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .mfp-food-row span:last-child { white-space: nowrap; }
+      .mfp-empty { opacity: .6; padding: 8px 0; }
