@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0-beta.6
+
+- Add the bundled `icon.png` to the first-party card header for subtle MyFitnessPal branding.
+- Turn Nutrition details into a compact click-to-expand section that is collapsed by default.
+- Show the number of available secondary nutrient values in the collapsed Nutrition details summary.
+- Keep Water / Fiber / Sugar visible in the main card flow while secondary nutrients remain tucked away until needed.
+- Preserve `show_nutrition_details: false` as the option for hiding the Nutrition details section entirely.
+- Rename the bundled integration brand image to Home Assistant's standard `brand/icon.png` path and expose the same icon to the frontend card.
+
 ## 0.4.0-beta.5
 
 - Merge the existing nutrition dashboard into the bundled first-party Lovelace card.
