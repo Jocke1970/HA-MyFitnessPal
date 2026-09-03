@@ -1,13 +1,14 @@
 # HA-MyFitnessPal 0.4.x Lovelace prototype - Swedish UI
 # Requires: custom:button-card
 #
-# Prototype for the expandable food diary and read-only exercise diary.
-# Replace the entity IDs below if Home Assistant generated different IDs.
+# Prototype for expandable food diary and read-only exercise diary.
+# Expansion uses a hidden checkbox + label + CSS instead of <details>, because
+# button-card can intercept native <summary> clicks in some Home Assistant views.
 #
 # Nutrition diary:
 #   sensor.myfitnesspal_naringsdagbok
 # Exercise diary:
-#   sensor.myfitnesspal_traningsdagbok
+#   sensor.ovrigt_myfitnesspal_traningsdagbok
 
 type: vertical-stack
 cards:
@@ -74,7 +75,7 @@ cards:
             a.info.rank - b.info.rank || a.info.label.localeCompare(b.info.label, 'sv')
           );
 
-          return orderedMeals.map(group => {
+          return orderedMeals.map((group, index) => {
             const items = group.items;
             const mealKcal = items.reduce((sum, item) => {
               const value = Number(item?.nutrients?.energy);
@@ -112,14 +113,16 @@ cards:
                 </div>`;
             }).join('');
 
+            const toggleId = `mfp-meal-${index}`;
             return `
-              <details class="mfp-expand-row" onclick="event.stopPropagation()" onpointerup="event.stopPropagation()">
-                <summary>
+              <div class="mfp-expand-row">
+                <input class="mfp-toggle" type="checkbox" id="${toggleId}">
+                <label class="mfp-expand-head" for="${toggleId}">
                   <span>${esc(group.info.label)}</span>
                   <span class="mfp-summary-right">${Math.round(mealKcal)} kcal <span class="mfp-chevron">⌄</span></span>
-                </summary>
+                </label>
                 <div class="mfp-expand-body">${foods}</div>
-              </details>`;
+              </div>`;
           }).join('');
         ]]]
     styles:
@@ -135,27 +138,33 @@ cards:
           - width: 100%
         diary:
           - width: 100%
+          - pointer-events: auto
     extra_styles: |
       .mfp-section-header { font-size: 20px; font-weight: 600; }
       .mfp-empty { opacity: .6; padding: 8px 0; }
       .mfp-expand-row {
+        position: relative;
         border-radius: 15px;
         background: rgba(255, 255, 255, 0.045);
         overflow: hidden;
       }
       .mfp-expand-row + .mfp-expand-row { margin-top: 10px; }
-      .mfp-expand-row summary {
+      .mfp-toggle {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .mfp-expand-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 14px;
         padding: 15px 16px;
         cursor: pointer;
-        list-style: none;
         font-size: 17px;
         font-weight: 600;
+        user-select: none;
       }
-      .mfp-expand-row summary::-webkit-details-marker { display: none; }
       .mfp-summary-right { white-space: nowrap; }
       .mfp-chevron {
         display: inline-block;
@@ -163,9 +172,19 @@ cards:
         opacity: .45;
         transition: transform .18s ease;
       }
-      .mfp-expand-row[open] .mfp-chevron { transform: rotate(180deg); }
-      .mfp-expand-row[open] summary { border-bottom: 1px solid rgba(128, 128, 128, .14); }
-      .mfp-expand-body { padding: 2px 16px 10px; }
+      .mfp-expand-body {
+        display: none;
+        padding: 2px 16px 10px;
+      }
+      .mfp-toggle:checked + .mfp-expand-head {
+        border-bottom: 1px solid rgba(128, 128, 128, .14);
+      }
+      .mfp-toggle:checked + .mfp-expand-head .mfp-chevron {
+        transform: rotate(180deg);
+      }
+      .mfp-toggle:checked + .mfp-expand-head + .mfp-expand-body {
+        display: block;
+      }
       .mfp-food-item {
         display: flex;
         align-items: flex-start;
@@ -187,7 +206,7 @@ cards:
 
   # Träning - read-only data from the exercise diary sensor
   - type: custom:button-card
-    entity: sensor.myfitnesspal_traningsdagbok
+    entity: sensor.ovrigt_myfitnesspal_traningsdagbok
     show_icon: false
     show_name: false
     show_state: false
@@ -203,7 +222,7 @@ cards:
           const kcal = Number(a.exercise_calories);
           const minutes = Number(a.exercise_duration_minutes);
           const parts = [];
-          parts.push(`${entries.length} ${entries.length === 1 ? 'pass' : 'pass'}`);
+          parts.push(`${entries.length} pass`);
           if (Number.isFinite(kcal)) parts.push(`${Math.round(kcal)} kcal`);
           if (Number.isFinite(minutes) && minutes > 0) parts.push(`${Math.round(minutes)} min`);
           return `<div class="mfp-training-head"><span>Träning</span><span>${parts.join(' · ')}</span></div>`;
@@ -240,7 +259,7 @@ cards:
             return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
           };
 
-          return entries.map(item => {
+          return entries.map((item, index) => {
             const type = String(item?.type || '').toLowerCase();
             const isStrength = type === 'strength';
             const name = esc(item?.name || (isStrength ? 'Styrketräning' : 'Träning'));
@@ -283,14 +302,16 @@ cards:
               .map(([label, value]) => `<div class="mfp-training-detail"><span>${label}</span><b>${value}</b></div>`)
               .join('');
 
+            const toggleId = `mfp-workout-${index}`;
             return `
-              <details class="mfp-expand-row" onclick="event.stopPropagation()" onpointerup="event.stopPropagation()">
-                <summary>
+              <div class="mfp-expand-row">
+                <input class="mfp-toggle" type="checkbox" id="${toggleId}">
+                <label class="mfp-expand-head" for="${toggleId}">
                   <span class="mfp-workout-name">${name}</span>
                   <span class="mfp-summary-right">${summaryParts.join(' · ') || 'Detaljer'} <span class="mfp-chevron">⌄</span></span>
-                </summary>
+                </label>
                 <div class="mfp-training-body">${details}</div>
-              </details>`;
+              </div>`;
           }).join('');
         ]]]
     styles:
@@ -306,6 +327,7 @@ cards:
           - width: 100%
         workouts:
           - width: 100%
+          - pointer-events: auto
     extra_styles: |
       .mfp-training-head {
         display: flex;
@@ -317,23 +339,28 @@ cards:
       .mfp-training-head span:last-child { font-size: 13px; opacity: .55; white-space: nowrap; }
       .mfp-empty { opacity: .6; padding: 8px 0; }
       .mfp-expand-row {
+        position: relative;
         border-radius: 15px;
         background: rgba(255, 255, 255, 0.045);
         overflow: hidden;
       }
       .mfp-expand-row + .mfp-expand-row { margin-top: 10px; }
-      .mfp-expand-row summary {
+      .mfp-toggle {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .mfp-expand-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 14px;
         padding: 15px 16px;
         cursor: pointer;
-        list-style: none;
         font-size: 15px;
         font-weight: 600;
+        user-select: none;
       }
-      .mfp-expand-row summary::-webkit-details-marker { display: none; }
       .mfp-workout-name {
         min-width: 0;
         overflow: hidden;
@@ -347,9 +374,19 @@ cards:
         opacity: .45;
         transition: transform .18s ease;
       }
-      .mfp-expand-row[open] .mfp-chevron { transform: rotate(180deg); }
-      .mfp-expand-row[open] summary { border-bottom: 1px solid rgba(128, 128, 128, .14); }
-      .mfp-training-body { padding: 5px 16px 10px; }
+      .mfp-training-body {
+        display: none;
+        padding: 5px 16px 10px;
+      }
+      .mfp-toggle:checked + .mfp-expand-head {
+        border-bottom: 1px solid rgba(128, 128, 128, .14);
+      }
+      .mfp-toggle:checked + .mfp-expand-head .mfp-chevron {
+        transform: rotate(180deg);
+      }
+      .mfp-toggle:checked + .mfp-expand-head + .mfp-training-body {
+        display: block;
+      }
       .mfp-training-detail {
         display: flex;
         justify-content: space-between;
