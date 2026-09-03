@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.3.0-beta.2
+## 0.3.0
 
+- Promote the tested 0.3.0 beta work to stable.
 - Add optional read-only sensors for saturated fat, polyunsaturated fat, monounsaturated fat, trans fat, cholesterol, sodium, potassium and added sugars.
 - Keep secondary nutrient sensors disabled by default to avoid cluttering new installations.
 - Reuse the already-fetched diary totals, so the extra nutrient sensors add no additional MyFitnessPal API requests.
