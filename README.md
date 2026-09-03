@@ -66,6 +66,12 @@ They intentionally do **not** include food logging controls because this integra
 - Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
 - English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
 
+### Screenshots
+
+| Swedish | English |
+| --- | --- |
+| <img src="examples/ha-myfitnesspal_se.png" alt="HA-MyFitnessPal Lovelace dashboard in Swedish" width="420"> | <img src="examples/ha-myfitnesspal_en.png" alt="HA-MyFitnessPal Lovelace dashboard in English" width="420"> |
+
 The examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). The tested installation uses `sensor.myfitnesspal_naringsdagbok`; if your Nutrition diary entity has another ID, replace that single ID throughout the example.
 
 ## Installation
