@@ -26,7 +26,7 @@ class MyFitnessPalSensorDescription(SensorEntityDescription):
     nutrient_key: str
 
 
-SENSORS: tuple[MyFitnessPalSensorDescription, ...] = (
+PRIMARY_SENSORS: tuple[MyFitnessPalSensorDescription, ...] = (
     MyFitnessPalSensorDescription(
         key="calories",
         translation_key="calories",
@@ -82,6 +82,95 @@ SENSORS: tuple[MyFitnessPalSensorDescription, ...] = (
         suggested_display_precision=1,
     ),
 )
+
+
+# These values are already present in the normalized diary totals when MFP
+# supplies them, so exposing them adds no extra API requests. Keep them disabled
+# by default to avoid flooding a new installation with secondary entities.
+SECONDARY_SENSORS: tuple[MyFitnessPalSensorDescription, ...] = (
+    MyFitnessPalSensorDescription(
+        key="saturated_fat",
+        translation_key="saturated_fat",
+        nutrient_key="saturated_fat",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water",
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="polyunsaturated_fat",
+        translation_key="polyunsaturated_fat",
+        nutrient_key="polyunsaturated_fat",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-outline",
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="monounsaturated_fat",
+        translation_key="monounsaturated_fat",
+        nutrient_key="monounsaturated_fat",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-outline",
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="trans_fat",
+        translation_key="trans_fat",
+        nutrient_key="trans_fat",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-alert",
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="cholesterol",
+        translation_key="cholesterol",
+        nutrient_key="cholesterol",
+        native_unit_of_measurement=UnitOfMass.MILLIGRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:heart-pulse",
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="sodium",
+        translation_key="sodium",
+        nutrient_key="sodium",
+        native_unit_of_measurement=UnitOfMass.MILLIGRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:shaker-outline",
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="potassium",
+        translation_key="potassium",
+        nutrient_key="potassium",
+        native_unit_of_measurement=UnitOfMass.MILLIGRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:flash-outline",
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+    ),
+    MyFitnessPalSensorDescription(
+        key="added_sugars",
+        translation_key="added_sugars",
+        nutrient_key="added_sugars",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:cube-scan",
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+)
+
+SENSORS = PRIMARY_SENSORS + SECONDARY_SENSORS
 
 
 async def async_setup_entry(
