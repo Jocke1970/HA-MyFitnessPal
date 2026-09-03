@@ -37,6 +37,14 @@
       "fat": {"name": "Fat"},
       "fiber": {"name": "Fiber"},
       "sugar": {"name": "Sugar"},
+      "saturated_fat": {"name": "Saturated fat"},
+      "polyunsaturated_fat": {"name": "Polyunsaturated fat"},
+      "monounsaturated_fat": {"name": "Monounsaturated fat"},
+      "trans_fat": {"name": "Trans fat"},
+      "cholesterol": {"name": "Cholesterol"},
+      "sodium": {"name": "Sodium"},
+      "potassium": {"name": "Potassium"},
+      "added_sugars": {"name": "Added sugars"},
       "water": {"name": "Water"},
       "diary": {"name": "Nutrition diary"}
     }
