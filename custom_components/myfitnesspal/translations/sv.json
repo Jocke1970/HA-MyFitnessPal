@@ -46,7 +46,10 @@
       "potassium": {"name": "Kalium"},
       "added_sugars": {"name": "Tillsatt socker"},
       "water": {"name": "Vatten"},
-      "diary": {"name": "Näringsdagbok"}
+      "diary": {"name": "Näringsdagbok"},
+      "exercise_calories": {"name": "Träningskalorier"},
+      "exercise_duration": {"name": "Träningstid"},
+      "exercise_diary": {"name": "Träningsdagbok"}
     }
   }
 }
