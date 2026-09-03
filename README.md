@@ -68,7 +68,7 @@ The repository includes read-only Lovelace examples inspired by the information 
 
 Starting with the 0.4.0 beta development cycle, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
 
-As of `0.4.0-beta.4`, the first-party card contains the complete dashboard flow:
+As of `0.4.0-beta.5`, the first-party card contains the complete dashboard flow:
 
 - Calories with consumed amount, goal, remaining amount and progress bar
 - Carbohydrates, Fat and Protein with individual goal progress bars
@@ -189,12 +189,14 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 - `main` tracks the current tested/stable version.
 - `dev` is used for active development and UI experiments before promotion to `main`.
+- Before a prerelease is tagged, manifest version wiring and frontend JavaScript syntax are validated by the `Release sanity` GitHub Actions workflow.
+- Release order is: finish code → bump version/cache wiring → verify the green sanity check → create the GitHub tag/release.
 
 ## Current status
 
 Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.4.0-beta.4**
+Current development version on `dev`: **0.4.0-beta.5**
 
 The 0.4.0 beta adds read-only exercise diary support and is now testing the complete bundled first-party Lovelace dashboard before promotion to a stable release.
 
