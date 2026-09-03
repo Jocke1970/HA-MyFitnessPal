@@ -37,6 +37,7 @@
       "fat": {"name": "Fett"},
       "fiber": {"name": "Fiber"},
       "sugar": {"name": "Socker"},
+      "water": {"name": "Vatten"},
       "diary": {"name": "Näringsdagbok"}
     }
   }
