@@ -16,6 +16,7 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 - Reads MyFitnessPal nutrient goals and exposes goal, remaining amount and percentage of goal when available.
 - Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals, goals and water intake.
 - Normalizes cardio and strength exercise entries without counting Garmin Connect calorie-adjustment entries as workouts.
+- Bundles a first-party Lovelace card for the food and exercise diaries during the 0.4.0 beta cycle.
 - Polls every 15 minutes.
 - Swedish and English entity/config-flow translations.
 - Password is used only during initial login or reauthentication and is not stored by the integration.
@@ -63,7 +64,7 @@ Exercise polling adds one additional MyFitnessPal diary request per coordinator 
 
 The repository includes read-only Lovelace examples inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
 
-The examples provide:
+The original YAML examples provide:
 
 - a calorie card with consumed, goal, remaining and progress bar
 - carbohydrates, fat and protein with individual goal progress bars
@@ -73,12 +74,38 @@ The examples provide:
 
 The Nutrition details card only shows nutrient values MyFitnessPal actually supplied for the current day. Missing nutrients are omitted, and the complete card hides itself when none of the supported secondary values are available.
 
-Both examples intentionally use the **Nutrition diary sensor as the single data source**. Calories, macros, goals, remaining values, water, secondary nutrient details and diary entries are all read from that sensor's attributes. This avoids depending on language-specific entity IDs for each individual nutrient sensor and makes the examples more robust.
+Both original examples intentionally use the **Nutrition diary sensor as the single data source**. Calories, macros, goals, remaining values, water, secondary nutrient details and diary entries are all read from that sensor's attributes. This avoids depending on language-specific entity IDs for each individual nutrient sensor and makes the examples more robust.
 
 They intentionally do **not** include food logging controls because this integration is read-only.
 
 - Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
 - English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
+
+### First-party HA-MyFitnessPal card
+
+Starting with the 0.4.0 beta development cycle, the integration also bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the new card does not require `custom:button-card` or a manually added Lovelace resource.
+
+The first card MVP focuses on the two areas that need real UI state:
+
+- collapsed meal rows showing only meal name and calories
+- click-to-expand food details for each meal
+- working **See all / Se alla** and **Hide all / Dölj alla** controls
+- collapsed cardio and strength workout rows
+- click-to-expand exercise details
+- strength summaries with sets, reps and weight
+- weight display following Home Assistant's configured mass unit
+
+Example:
+
+```yaml
+type: custom:ha-myfitnesspal-card
+nutrition_entity: sensor.myfitnesspal_naringsdagbok
+exercise_entity: sensor.ovrigt_myfitnesspal_traningsdagbok
+language: sv
+show_training: true
+```
+
+See [`examples/lovelace-ha-myfitnesspal-card.yaml`](examples/lovelace-ha-myfitnesspal-card.yaml) for the development example. Entity IDs can differ between installations, so configure the actual entities created by Home Assistant.
 
 ### Screenshots
 
@@ -86,7 +113,7 @@ They intentionally do **not** include food logging controls because this integra
 | --- | --- |
 | <img src="examples/ha-myfitnesspal_se.png" alt="HA-MyFitnessPal Lovelace dashboard in Swedish" width="420"> | <img src="examples/ha-myfitnesspal_en.png" alt="HA-MyFitnessPal Lovelace dashboard in English" width="420"> |
 
-The examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). The tested installation uses `sensor.myfitnesspal_naringsdagbok`; if your Nutrition diary entity has another ID, replace that single ID throughout the example.
+The original YAML dashboard examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). The tested installation uses `sensor.myfitnesspal_naringsdagbok`; if your Nutrition diary entity has another ID, replace that single ID throughout those examples.
 
 ## Installation
 
@@ -158,9 +185,9 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.4.0-beta.1**
+Current development version on `dev`: **0.4.0-beta.2**
 
-The 0.4.0 beta adds read-only exercise diary support and is intended for testing before promotion to a stable release.
+The 0.4.0 beta adds read-only exercise diary support and is now testing the bundled first-party Lovelace card before promotion to a stable release.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
