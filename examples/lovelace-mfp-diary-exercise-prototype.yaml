@@ -113,7 +113,7 @@ cards:
             }).join('');
 
             return `
-              <details class="mfp-expand-row">
+              <details class="mfp-expand-row" onclick="event.stopPropagation()" onpointerup="event.stopPropagation()">
                 <summary>
                   <span>${esc(group.info.label)}</span>
                   <span class="mfp-summary-right">${Math.round(mealKcal)} kcal <span class="mfp-chevron">⌄</span></span>
@@ -284,7 +284,7 @@ cards:
               .join('');
 
             return `
-              <details class="mfp-expand-row">
+              <details class="mfp-expand-row" onclick="event.stopPropagation()" onpointerup="event.stopPropagation()">
                 <summary>
                   <span class="mfp-workout-name">${name}</span>
                   <span class="mfp-summary-right">${summaryParts.join(' · ') || 'Detaljer'} <span class="mfp-chevron">⌄</span></span>
