@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0-beta.3
+
+- Merge the existing nutrition dashboard into the bundled first-party Lovelace card.
+- Add Calories with consumed amount, goal, remaining amount and progress bar.
+- Add Carbohydrates, Fat and Protein with individual goal progress bars.
+- Add the compact Water / Fiber / Sugar row.
+- Add dynamic Nutrition details for secondary nutrients that MyFitnessPal actually supplied.
+- Keep Nutrition details hidden when none of the supported secondary nutrient values are available.
+- Preserve the compact expandable meal diary and exercise sections introduced in beta.2.
+- Fix missing cardio heart-rate values being rendered as false `0 bpm` values by treating null/empty values as unavailable.
+- Use locale-aware number formatting in the first-party card.
+- Keep strength weight display aligned with Home Assistant's configured mass unit.
+
 ## 0.4.0-beta.2
 
 - Add the first HA-MyFitnessPal first-party Lovelace card as a bundled Web Component.
