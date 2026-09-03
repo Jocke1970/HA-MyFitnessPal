@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Add a tested Swedish Lovelace dashboard example for calories, macro goals and the daily food diary.
+- Add a matching English Lovelace dashboard example.
+- Document the `main` / `dev` branch workflow for stable and in-development changes.
+
 ## 0.2.0
 
 - Preserve the difference between a missing nutrient value and an explicit zero.
