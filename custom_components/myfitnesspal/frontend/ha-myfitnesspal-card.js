@@ -1,4 +1,5 @@
-const HA_MFP_CARD_VERSION = "0.4.0-beta.5";
+const HA_MFP_CARD_VERSION = "0.4.0-beta.6";
+const HA_MFP_ICON_URL = new URL(`./icon.png?v=${HA_MFP_CARD_VERSION}`, import.meta.url).href;
 
 const I18N = {
   sv: {
@@ -11,6 +12,7 @@ const I18N = {
     fiber: "Fiber",
     sugar: "Socker",
     nutritionDetails: "Näringsdetaljer",
+    nutrientValues: "värden",
     saturatedFat: "Mättat fett",
     polyunsaturatedFat: "Fleromättat fett",
     monounsaturatedFat: "Enkelomättat fett",
@@ -58,6 +60,7 @@ const I18N = {
     fiber: "Fiber",
     sugar: "Sugar",
     nutritionDetails: "Nutrition details",
+    nutrientValues: "values",
     saturatedFat: "Saturated fat",
     polyunsaturatedFat: "Polyunsaturated fat",
     monounsaturatedFat: "Monounsaturated fat",
@@ -103,6 +106,7 @@ class HAMyFitnessPalCard extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = null;
     this._hass = null;
+    this._nutritionDetailsExpanded = false;
     this._expandedMeals = new Set();
     this._expandedWorkouts = new Set();
     this._boundClick = this._handleClick.bind(this);
@@ -180,7 +184,7 @@ class HAMyFitnessPalCard extends HTMLElement {
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
 
@@ -328,7 +332,10 @@ class HAMyFitnessPalCard extends HTMLElement {
 
     return `
       <ha-card class="mfp-card calories-card">
-        <div class="calories-title">${t.caloriesTitle}</div>
+        <div class="calories-title-row">
+          <img class="brand-icon" src="${HA_MFP_ICON_URL}" alt="MyFitnessPal">
+          <div class="calories-title">${t.caloriesTitle}</div>
+        </div>
         <div class="calories-line">
           <div><span class="main-value">${valueText}</span><span class="muted"> / ${goalText}</span></div>
           <div><span class="remaining-value">${remainingText}</span><span class="muted"> ${t.remaining}</span></div>
@@ -430,10 +437,14 @@ class HAMyFitnessPalCard extends HTMLElement {
 
     if (!rows.length) return "";
 
+    const expanded = this._nutritionDetailsExpanded;
     return `
-      <ha-card class="mfp-card nutrition-details-card">
-        <div class="nutrition-details-title">${t.nutritionDetails}</div>
-        <div>${rows.join("")}</div>
+      <ha-card class="mfp-card nutrition-details-card ${expanded ? "expanded" : ""}">
+        <button class="nutrition-details-toggle" type="button" data-action="toggle-nutrition-details">
+          <span>${t.nutritionDetails}</span>
+          <span class="nutrition-details-summary">${rows.length} ${t.nutrientValues}<span class="chevron">⌄</span></span>
+        </button>
+        ${expanded ? `<div class="nutrition-details-body">${rows.join("")}</div>` : ""}
       </ha-card>`;
   }
 
@@ -622,10 +633,25 @@ class HAMyFitnessPalCard extends HTMLElement {
           border-radius: var(--ha-card-border-radius, 28px);
         }
 
+        .calories-title-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .brand-icon {
+          width: 30px;
+          height: 30px;
+          flex: 0 0 30px;
+          object-fit: contain;
+          border-radius: 7px;
+        }
+
         .calories-title {
           font-size: 22px;
           font-weight: 500;
-          margin-bottom: 18px;
+          margin: 0;
         }
 
         .calories-line {
@@ -711,13 +737,42 @@ class HAMyFitnessPalCard extends HTMLElement {
         }
 
         .nutrition-details-card {
-          padding: 20px 24px 18px;
+          padding: 0;
+          overflow: hidden;
         }
 
-        .nutrition-details-title {
+        .nutrition-details-toggle {
+          appearance: none;
+          width: 100%;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 18px 24px;
+          cursor: pointer;
+          text-align: left;
+          font: inherit;
           font-size: 18px;
           font-weight: 600;
-          margin-bottom: 10px;
+        }
+
+        .nutrition-details-card.expanded .nutrition-details-toggle {
+          border-bottom: 1px solid color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        }
+
+        .nutrition-details-summary {
+          flex: 0 0 auto;
+          font-size: 13px;
+          font-weight: 500;
+          opacity: .58;
+          white-space: nowrap;
+        }
+
+        .nutrition-details-body {
+          padding: 4px 24px 16px;
         }
 
         .nutrition-detail-row {
@@ -951,6 +1006,12 @@ class HAMyFitnessPalCard extends HTMLElement {
             padding: 22px 18px 20px;
           }
 
+          .brand-icon {
+            width: 28px;
+            height: 28px;
+            flex-basis: 28px;
+          }
+
           .calories-title {
             font-size: 20px;
           }
@@ -996,6 +1057,16 @@ class HAMyFitnessPalCard extends HTMLElement {
 
           .small-card {
             padding: 18px 16px;
+          }
+
+          .nutrition-details-toggle {
+            padding: 16px;
+            gap: 10px;
+            font-size: 17px;
+          }
+
+          .nutrition-details-body {
+            padding: 4px 16px 14px;
           }
 
           .section-header {
@@ -1054,6 +1125,11 @@ class HAMyFitnessPalCard extends HTMLElement {
     const actionButton = target.closest?.("[data-action]");
     if (actionButton) {
       const action = actionButton.dataset.action;
+      if (action === "toggle-nutrition-details") {
+        this._nutritionDetailsExpanded = !this._nutritionDetailsExpanded;
+        this._render();
+        return;
+      }
       if (action === "toggle-all-meals") {
         this._toggleAllMeals();
         return;
