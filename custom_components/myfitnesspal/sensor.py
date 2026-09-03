@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfEnergy, UnitOfMass, UnitOfVolume
+from homeassistant.const import UnitOfEnergy, UnitOfMass, UnitOfTime, UnitOfVolume
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -182,7 +182,13 @@ async def async_setup_entry(
     coordinator: MyFitnessPalCoordinator = entry.runtime_data
     async_add_entities(
         [MyFitnessPalNutrientSensor(coordinator, description) for description in SENSORS]
-        + [MyFitnessPalWaterSensor(coordinator), MyFitnessPalDiarySensor(coordinator)]
+        + [
+            MyFitnessPalWaterSensor(coordinator),
+            MyFitnessPalDiarySensor(coordinator),
+            MyFitnessPalExerciseCaloriesSensor(coordinator),
+            MyFitnessPalExerciseDurationSensor(coordinator),
+            MyFitnessPalExerciseDiarySensor(coordinator),
+        ]
     )
 
 
@@ -288,4 +294,89 @@ class MyFitnessPalDiarySensor(MyFitnessPalEntity):
             "goal_source": self.coordinator.data.goal_source,
             "remaining": self.coordinator.data.remaining,
             "water_ml": self.coordinator.data.water_ml,
+        }
+
+
+class MyFitnessPalExerciseEntity(MyFitnessPalEntity):
+    """Base entity for optional exercise-diary data."""
+
+    @property
+    def available(self) -> bool:
+        """Keep exercise entities unavailable if that endpoint failed."""
+        return super().available and self.coordinator.data.exercise_entries is not None
+
+
+class MyFitnessPalExerciseCaloriesSensor(MyFitnessPalExerciseEntity):
+    """Today's calories from real exercise entries, excluding adjustments."""
+
+    _attr_translation_key = "exercise_calories"
+    _attr_icon = "mdi:run-fast"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_CALORIE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator: MyFitnessPalCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.domain_user_id}_exercise_calories"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return exercise calories without partner calorie adjustments."""
+        return self.coordinator.data.exercise_calories
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the date represented by the value."""
+        return {"date": self.coordinator.data.date}
+
+
+class MyFitnessPalExerciseDurationSensor(MyFitnessPalExerciseEntity):
+    """Today's duration from exercise entries that provide duration."""
+
+    _attr_translation_key = "exercise_duration"
+    _attr_icon = "mdi:timer-outline"
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator: MyFitnessPalCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.domain_user_id}_exercise_duration"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return summed exercise duration in minutes."""
+        return self.coordinator.data.exercise_duration_minutes
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the date represented by the value."""
+        return {"date": self.coordinator.data.date}
+
+
+class MyFitnessPalExerciseDiarySensor(MyFitnessPalExerciseEntity):
+    """Expose normalized exercise entries and calorie adjustments."""
+
+    _attr_translation_key = "exercise_diary"
+    _attr_icon = "mdi:dumbbell"
+
+    def __init__(self, coordinator: MyFitnessPalCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.domain_user_id}_exercise_diary"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return number of real exercise entries, excluding adjustments."""
+        entries = self.coordinator.data.exercise_entries
+        return len(entries) if entries is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return normalized exercise data and partner adjustments."""
+        return {
+            "date": self.coordinator.data.date,
+            "entries": self.coordinator.data.exercise_entries,
+            "calorie_adjustments": self.coordinator.data.calorie_adjustments,
+            "exercise_calories": self.coordinator.data.exercise_calories,
+            "exercise_duration_minutes": self.coordinator.data.exercise_duration_minutes,
         }
