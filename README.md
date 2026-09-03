@@ -143,9 +143,9 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 ## Current status
 
-Current stable version on `main`: **0.2.1**
+Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.3.0-beta.2**
+`dev` is currently aligned with **0.3.0** and is ready for the next development cycle.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
