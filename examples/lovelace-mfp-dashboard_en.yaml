@@ -159,9 +159,9 @@ cards:
         protein:
           - text-align: left
     extra_styles: |
-      .mfp-macro-title { font-size: 21px; margin-bottom: 10px; }
-      .mfp-macro-value { font-size: 24px; font-weight: 700; margin-bottom: 22px; white-space: nowrap; }
-      .mfp-macro-value span { font-weight: 400; opacity: 0.55; }
+      .mfp-macro-title { font-size: 16px; opacity: .72; margin-bottom: 7px; }
+      .mfp-macro-value { font-size: 20px; font-weight: 700; margin-bottom: 16px; white-space: nowrap; }
+      .mfp-macro-value span { font-weight: 400; opacity: .5; }
       .mfp-track {
         width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
         background: rgba(0, 0, 0, 0.28);
