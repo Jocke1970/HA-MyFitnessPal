@@ -1,0 +1,210 @@
+name: Publish prerelease
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: Publish verified prerelease
+    if: contains(github.event.head_commit.message, '[publish-prerelease]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Read and validate release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('custom_components/myfitnesspal/manifest.json').read_text(encoding='utf-8'))['version'])
+          PY
+          )"
+          if [[ "$VERSION" != *-* ]]; then
+            echo "Refusing to publish non-prerelease version: $VERSION" >&2
+            exit 1
+          fi
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release candidate: $TAG at $GITHUB_SHA"
+
+      - name: Re-run local release safety checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_release_version.py
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js
+
+      - name: Wait for required CI on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=("Code quality" "Home Assistant validation" "CodeQL" "Release sanity")
+          deadline=$((SECONDS + 900))
+
+          while (( SECONDS < deadline )); do
+            runs="$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$SHA&event=push&per_page=100")"
+
+            waiting=0
+            for workflow in "${required[@]}"; do
+              status="$(jq -r --arg name "$workflow" '[.workflow_runs[] | select(.name == $name)][0].status // "missing"' <<<"$runs")"
+              conclusion="$(jq -r --arg name "$workflow" '[.workflow_runs[] | select(.name == $name)][0].conclusion // ""' <<<"$runs")"
+
+              if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+                echo "OK: $workflow"
+                continue
+              fi
+
+              if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
+                echo "Required workflow failed: $workflow ($conclusion)" >&2
+                exit 1
+              fi
+
+              echo "Waiting: $workflow ($status)"
+              waiting=1
+            done
+
+            if (( waiting == 0 )); then
+              echo "All required workflows are green for $SHA"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Timed out waiting for required CI on $SHA" >&2
+          exit 1
+
+      - name: Confirm dev still points at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEV_SHA="$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/dev" --jq '.object.sha')"
+          if [[ "$DEV_SHA" != "$SHA" ]]; then
+            echo "dev moved from $SHA to $DEV_SHA; refusing to publish stale code" >&2
+            exit 1
+          fi
+          echo "dev still points at $SHA"
+
+      - name: Confirm tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh api "/repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists: $TAG" >&2
+            exit 1
+          fi
+          if gh api "/repos/$GITHUB_REPOSITORY/releases/tags/$TAG" >/dev/null 2>&1; then
+            echo "Release already exists: $TAG" >&2
+            exit 1
+          fi
+
+      - name: Build release notes from changelog
+        id: notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ['VERSION']
+          lines = Path('CHANGELOG.md').read_text(encoding='utf-8').splitlines()
+          heading = f'## {version}'
+          try:
+              start = lines.index(heading) + 1
+          except ValueError as err:
+              raise SystemExit(f'Missing changelog section: {heading}') from err
+
+          end = len(lines)
+          for index in range(start, len(lines)):
+              if lines[index].startswith('## '):
+                  end = index
+                  break
+
+          body = '\n'.join(lines[start:end]).strip()
+          if not body:
+              raise SystemExit(f'Empty changelog section: {heading}')
+          Path('/tmp/release-notes.md').write_text(body + '\n', encoding='utf-8')
+          print(body)
+          PY
+
+      - name: Create GitHub prerelease and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --target "$SHA" \
+            --title "HA-MyFitnessPal $VERSION" \
+            --prerelease \
+            --notes-file /tmp/release-notes.md
+
+      - name: Verify published prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE="$(gh api "/repos/$GITHUB_REPOSITORY/releases/tags/$TAG")"
+          prerelease="$(jq -r '.prerelease' <<<"$RELEASE")"
+          draft="$(jq -r '.draft' <<<"$RELEASE")"
+          tag_sha="$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')"
+
+          if [[ "$prerelease" != "true" || "$draft" != "false" ]]; then
+            echo "Release flags are wrong: prerelease=$prerelease draft=$draft" >&2
+            exit 1
+          fi
+          if [[ "$tag_sha" != "$SHA" ]]; then
+            echo "Tag points at $tag_sha instead of $SHA" >&2
+            exit 1
+          fi
+
+          url="$(jq -r '.html_url' <<<"$RELEASE")"
+          echo "Published and verified: $url"
+          echo "### Published $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release: $url" >> "$GITHUB_STEP_SUMMARY"
