@@ -18,6 +18,7 @@
 - Sort diary meal groups in a fixed day order: Breakfast, Lunch, Snacks, Dinner, Evening snacks and Supplements.
 - Recognize common Swedish/English aliases for meal groups while keeping unknown custom meal names visible at the end.
 - Remove the inactive `See all` / `Se alla` label from the YAML dashboard examples.
+- Harmonize macro typography with the Water / Fiber / Sugar card for a more consistent mobile layout.
 
 ## 0.3.0-beta.1
 
