@@ -75,16 +75,27 @@ Likely Home Assistant representation:
 
 #### Strength-entry normalization
 
-A tested strength entry contained:
+Live testing confirmed that the strength fields map directly to the MyFitnessPal UI semantics:
 
-- `quantity`
-- `sets`
-- `reps_per_set`
-- `weight_per_set`
+- `sets` = number of sets
+- `reps_per_set` = repetitions per set
+- `quantity` = total repetitions (`sets * reps_per_set`)
+- `weight_per_set` = weight used per set
 
-The first live test strongly suggests the API field names for sets/reps do not match the MyFitnessPal UI semantics: an entry entered in the UI as 3 sets x 10 reps returned `sets: 10`, `reps_per_set: 3` and `quantity: 30`. A second deliberately asymmetric test should confirm this before the mapping is implemented in production code.
+A deliberately asymmetric test entered as 4 sets x 7 reps x 12 kg returned:
 
-`weight_per_set` was returned as pounds even though the MyFitnessPal UI was being used metrically. Therefore HA-MyFitnessPal must not infer the display unit from country/locale and must not assume that the raw API unit matches the user's MyFitnessPal presentation.
+```yaml
+quantity: 28
+sets: 4
+reps_per_set: 7
+weight_per_set:
+  unit: pounds
+  value: 26.4555
+```
+
+`26.4555 lb` converts to approximately `12.0 kg`, confirming that the numeric weight is correct while the API returns the underlying weight in pounds even when the MyFitnessPal UI is being used metrically.
+
+Therefore HA-MyFitnessPal must not infer the display unit from country/locale and must not assume that the raw API unit matches the user's MyFitnessPal presentation.
 
 Unit policy for exercise weights:
 
@@ -96,9 +107,12 @@ Unit policy for exercise weights:
 Conceptually:
 
 ```yaml
-weight_kg: 15.0
+sets: 4
+reps_per_set: 7
+total_reps: 28
+weight_kg: 12.0
 raw_weight:
-  value: 33.0693
+  value: 26.4555
   unit: pounds
 ```
 
