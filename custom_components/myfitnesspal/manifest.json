@@ -17,5 +17,5 @@
     "mfp-api@git+https://github.com/Rift-Walker/mfp-api.git@89b61eb5bee9062e62ccc98101b1c5527e5c0775"
   ],
   "single_config_entry": true,
-  "version": "0.3.0-beta.1"
+  "version": "0.3.0-beta.2"
 }
