@@ -1,18 +1,21 @@
-# MyFitnessPal Lovelace dashboard example - English
+# MyFitnessPal Lovelace dashboard example - English UI
 # Branch: dev
 # Requires: custom:button-card
 #
+# IMPORTANT:
+# Home Assistant entity IDs are created when entities are first registered and
+# do not change just because this dashboard uses English labels. The IDs below
+# match the currently tested installation. If your installation generated
+# different entity IDs, replace them accordingly.
+#
 # This card is intentionally read-only. Tapping the diary opens the
 # Home Assistant more-info dialog for the Nutrition diary sensor.
-#
-# Entity IDs below match an English Home Assistant installation. If Home
-# Assistant generated different entity IDs, replace them accordingly.
 
 type: vertical-stack
 cards:
   # Calories
   - type: custom:button-card
-    entity: sensor.myfitnesspal_calories
+    entity: sensor.myfitnesspal_kalorier
     show_icon: false
     show_name: false
     show_state: false
@@ -103,13 +106,13 @@ cards:
     show_name: false
     show_state: false
     triggers_update:
-      - sensor.myfitnesspal_carbohydrates
-      - sensor.myfitnesspal_fat
+      - sensor.myfitnesspal_kolhydrater
+      - sensor.myfitnesspal_fett
       - sensor.myfitnesspal_protein
     custom_fields:
       carbohydrates: >
         [[[
-          const e = states['sensor.myfitnesspal_carbohydrates'];
+          const e = states['sensor.myfitnesspal_kolhydrater'];
           if (!e) return 'Carbohydrates<br><b>–</b>';
           const value = Number(e.state);
           const goal = Number(e.attributes.goal);
@@ -125,7 +128,7 @@ cards:
         ]]]
       fat: >
         [[[
-          const e = states['sensor.myfitnesspal_fat'];
+          const e = states['sensor.myfitnesspal_fett'];
           if (!e) return 'Fat<br><b>–</b>';
           const value = Number(e.state);
           const goal = Number(e.attributes.goal);
@@ -203,7 +206,7 @@ cards:
 
   # Diary
   - type: custom:button-card
-    entity: sensor.myfitnesspal_nutrition_diary
+    entity: sensor.myfitnesspal_naringsdagbok
     show_icon: false
     show_name: false
     show_state: false
