@@ -9,9 +9,10 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 
 - Read-only access to today's MyFitnessPal food diary.
 - Daily totals for calories, carbohydrates, protein, fat, fiber and sugar.
+- Read-only daily water intake in milliliters.
 - Preserves the distinction between a nutrient that is explicitly `0` and a nutrient that MyFitnessPal did not provide.
 - Reads MyFitnessPal nutrient goals and exposes goal, remaining amount and percentage of goal when available.
-- Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals and goals.
+- Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals, goals and water intake.
 - Polls every 15 minutes.
 - Swedish and English entity/config-flow translations.
 - Password is used only during initial login or reauthentication and is not stored by the integration.
@@ -28,9 +29,10 @@ The integration currently creates:
 - Fat
 - Fiber
 - Sugar
+- Water
 - Nutrition diary
 
-The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals and remaining amounts.
+The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals, remaining amounts and `water_ml`.
 
 ## Lovelace dashboard
 
@@ -75,6 +77,7 @@ The integration currently reads:
 - food diary entries
 - nutrient totals
 - nutrient goals
+- water intake
 
 It does **not** expose Home Assistant services or entities for writing data back to MyFitnessPal.
 
@@ -110,7 +113,9 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 ## Current status
 
-Current integration version: **0.2.1**
+Current stable version on `main`: **0.2.1**
+
+Current development version on `dev`: **0.3.0-beta.1**
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
