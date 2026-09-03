@@ -115,7 +115,7 @@ cards:
           const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0;
           const v = Number.isFinite(value) ? Math.round(value) : '–';
           const g = Number.isFinite(goal) ? Math.round(goal) : '–';
-          return `<div class="mfp-macro-title">Carbohydrates</div><div class="mfp-macro-value">${v} g <span>/ ${g}</span></div><div class="mfp-track"><div class="mfp-fill mfp-carbs" style="width:${pct}%"></div></div>`;
+          return `<div class="mfp-macro-title mfp-carbs-title">Carbohydrates</div><div class="mfp-macro-value">${v} g <span>/ ${g}</span></div><div class="mfp-track"><div class="mfp-fill mfp-carbs" style="width:${pct}%"></div></div>`;
         ]]]
       fat: >
         [[[
@@ -160,6 +160,7 @@ cards:
           - text-align: left
     extra_styles: |
       .mfp-macro-title { font-size: 21px; margin-bottom: 10px; }
+      .mfp-carbs-title { font-size: 18px; letter-spacing: -0.2px; white-space: nowrap; }
       .mfp-macro-value { font-size: 24px; font-weight: 700; margin-bottom: 22px; white-space: nowrap; }
       .mfp-macro-value span { font-weight: 400; opacity: 0.55; }
       .mfp-track {
