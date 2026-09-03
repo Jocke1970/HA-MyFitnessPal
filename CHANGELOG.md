@@ -11,6 +11,7 @@
 - Remove the dashboard dependency on language-specific individual nutrient entity IDs.
 - Add a compact Water / Fiber / Sugar row to the Swedish and English dashboard examples.
 - Harden button-card JavaScript against missing/unknown values instead of treating them as zero or throwing template errors.
+- Add tested Swedish and English dashboard screenshots to the repository and README.
 
 ## 0.3.0-beta.1
 
