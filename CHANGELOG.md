@@ -15,6 +15,9 @@
 - Add dynamic Nutrition details cards to both dashboard examples for secondary nutrients already present in diary totals.
 - Hide missing secondary nutrients from the dashboard and hide the whole details card when none are available.
 - Use the compact `Carbs` label in the English macro card for narrow mobile layouts.
+- Sort diary meal groups in a fixed day order: Breakfast, Lunch, Snacks, Dinner, Evening snacks and Supplements.
+- Recognize common Swedish/English aliases for meal groups while keeping unknown custom meal names visible at the end.
+- Remove the inactive `See all` / `Se alla` label from the YAML dashboard examples.
 
 ## 0.3.0-beta.1
 
