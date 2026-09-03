@@ -1,4 +1,4 @@
-const HA_MFP_LOADER_VERSION = "0.4.0-beta.5";
+const HA_MFP_LOADER_VERSION = "0.4.0-beta.6";
 
 const cardUrl = new URL(
   `./ha-myfitnesspal-card.js?v=${HA_MFP_LOADER_VERSION}`,
