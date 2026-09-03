@@ -1,7 +1,24 @@
-const HA_MFP_CARD_VERSION = "0.4.0-beta.2";
+const HA_MFP_CARD_VERSION = "0.4.0-beta.3";
 
 const I18N = {
   sv: {
+    caloriesTitle: "Kalorier",
+    remaining: "kvar",
+    carbohydrates: "Kolhydrater",
+    fat: "Fett",
+    protein: "Protein",
+    water: "Vatten",
+    fiber: "Fiber",
+    sugar: "Socker",
+    nutritionDetails: "Näringsdetaljer",
+    saturatedFat: "Mättat fett",
+    polyunsaturatedFat: "Fleromättat fett",
+    monounsaturatedFat: "Enkelomättat fett",
+    transFat: "Transfett",
+    cholesterol: "Kolesterol",
+    sodium: "Natrium",
+    potassium: "Kalium",
+    addedSugars: "Tillsatt socker",
     diary: "Dagbok",
     training: "Träning",
     showAll: "Se alla",
@@ -32,6 +49,23 @@ const I18N = {
     configurationError: "HA-MyFitnessPal-kortet saknar en giltig näringsdagbokssensor.",
   },
   en: {
+    caloriesTitle: "Calories",
+    remaining: "remaining",
+    carbohydrates: "Carbs",
+    fat: "Fat",
+    protein: "Protein",
+    water: "Water",
+    fiber: "Fiber",
+    sugar: "Sugar",
+    nutritionDetails: "Nutrition details",
+    saturatedFat: "Saturated fat",
+    polyunsaturatedFat: "Polyunsaturated fat",
+    monounsaturatedFat: "Monounsaturated fat",
+    transFat: "Trans fat",
+    cholesterol: "Cholesterol",
+    sodium: "Sodium",
+    potassium: "Potassium",
+    addedSugars: "Added sugars",
     diary: "Diary",
     training: "Exercise",
     showAll: "See all",
@@ -82,6 +116,7 @@ class HAMyFitnessPalCard extends HTMLElement {
 
     this._config = {
       show_training: true,
+      show_nutrition_details: true,
       ...config,
     };
     this._render();
@@ -106,14 +141,15 @@ class HAMyFitnessPalCard extends HTMLElement {
   }
 
   getCardSize() {
-    return this._config?.show_training === false ? 3 : 6;
+    return this._config?.show_training === false ? 8 : 12;
   }
 
   static getStubConfig() {
     return {
       nutrition_entity: "sensor.myfitnesspal_naringsdagbok",
-      exercise_entity: "sensor.myfitnesspal_traningsdagbok",
+      exercise_entity: "sensor.ovrigt_myfitnesspal_traningsdagbok",
       language: "sv",
+      show_training: true,
     };
   }
 
@@ -131,6 +167,10 @@ class HAMyFitnessPalCard extends HTMLElement {
     return hassLanguage.startsWith("sv") ? "sv" : "en";
   }
 
+  _locale() {
+    return this._language() === "sv" ? "sv-SE" : "en-US";
+  }
+
   _t() {
     return I18N[this._language()];
   }
@@ -142,6 +182,28 @@ class HAMyFitnessPalCard extends HTMLElement {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  _number(value) {
+    if (value === null || value === undefined || value === "") return NaN;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : NaN;
+  }
+
+  _formatNumber(value, decimals = 0) {
+    const number = this._number(value);
+    if (!Number.isFinite(number)) return "–";
+    return new Intl.NumberFormat(this._locale(), {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals,
+    }).format(number);
+  }
+
+  _percent(value, goal) {
+    const current = this._number(value);
+    const target = this._number(goal);
+    if (!Number.isFinite(current) || !Number.isFinite(target) || target <= 0) return 0;
+    return Math.min(100, Math.max(0, (current / target) * 100));
   }
 
   _normalizeMeal(value) {
@@ -199,14 +261,14 @@ class HAMyFitnessPalCard extends HTMLElement {
     }
 
     return [...grouped.values()].sort(
-      (a, b) => a.info.rank - b.info.rank || a.info.label.localeCompare(b.info.label)
+      (a, b) => a.info.rank - b.info.rank || a.info.label.localeCompare(b.info.label, this._locale())
     );
   }
 
   _portion(item) {
-    const servings = Number(item?.servings);
+    const servings = this._number(item?.servings);
     const size = item?.serving_size || {};
-    const value = Number(size.value);
+    const value = this._number(size.value);
     const unit = String(size.unit || "");
 
     if (!Number.isFinite(servings) || !Number.isFinite(value)) return "";
@@ -215,25 +277,23 @@ class HAMyFitnessPalCard extends HTMLElement {
     const rounded = Number.isInteger(amount) ? amount : Math.round(amount * 10) / 10;
     const lang = this._language();
     const unitMap = lang === "sv"
-      ? { piece: "st", gram: "g", grams: "g", milliliter: "mL", milliliters: "mL" }
-      : { piece: "pc", gram: "g", grams: "g", milliliter: "mL", milliliters: "mL" };
+      ? { piece: "st", pieces: "st", gram: "g", grams: "g", milliliter: "mL", milliliters: "mL" }
+      : { piece: "pc", pieces: "pcs", gram: "g", grams: "g", milliliter: "mL", milliliters: "mL" };
     const translatedUnit = unitMap[unit.toLowerCase()] || unit;
 
-    return translatedUnit ? `${rounded} ${translatedUnit}` : `${rounded}`;
+    return translatedUnit ? `${this._formatNumber(rounded, 1)} ${translatedUnit}` : this._formatNumber(rounded, 1);
   }
 
   _weight(valueKg) {
-    const value = Number(valueKg);
+    const value = this._number(valueKg);
     if (!Number.isFinite(value)) return null;
 
     const massUnit = String(this._hass?.config?.unit_system?.mass || "kg").toLowerCase();
     if (massUnit.startsWith("lb")) {
-      const pounds = Math.round(value * 2.2046226218 * 10) / 10;
-      return `${pounds} lb`;
+      return `${this._formatNumber(value * 2.2046226218, 1)} lb`;
     }
 
-    const kilograms = Math.round(value * 10) / 10;
-    return `${kilograms} kg`;
+    return `${this._formatNumber(value, 1)} kg`;
   }
 
   _time(value) {
@@ -241,10 +301,140 @@ class HAMyFitnessPalCard extends HTMLElement {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
 
-    return date.toLocaleTimeString(this._language() === "sv" ? "sv-SE" : "en-US", {
+    return date.toLocaleTimeString(this._locale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  _renderCalories(nutritionEntity) {
+    const t = this._t();
+    const attrs = nutritionEntity?.attributes || {};
+    const totals = attrs.totals || {};
+    const goals = attrs.goals || {};
+    const remaining = attrs.remaining || {};
+    const value = this._number(totals.energy);
+    const goal = this._number(goals.energy);
+    let left = this._number(remaining.energy);
+
+    if (!Number.isFinite(left) && Number.isFinite(value) && Number.isFinite(goal)) {
+      left = goal - value;
+    }
+
+    const valueText = Number.isFinite(value) ? `${this._formatNumber(value)} kcal` : "–";
+    const goalText = Number.isFinite(goal) ? this._formatNumber(goal) : "–";
+    const remainingText = Number.isFinite(left) ? this._formatNumber(Math.max(0, left)) : "–";
+    const percent = this._percent(value, goal);
+
+    return `
+      <ha-card class="mfp-card calories-card">
+        <div class="calories-title">${t.caloriesTitle}</div>
+        <div class="calories-line">
+          <div><span class="main-value">${valueText}</span><span class="muted"> / ${goalText}</span></div>
+          <div><span class="remaining-value">${remainingText}</span><span class="muted"> ${t.remaining}</span></div>
+        </div>
+        <div class="track large-track"><div class="fill calories-fill" style="width:${percent}%"></div></div>
+      </ha-card>`;
+  }
+
+  _macroBlock(label, value, goal, className) {
+    const valueNumber = this._number(value);
+    const goalNumber = this._number(goal);
+    const valueText = Number.isFinite(valueNumber) ? `${this._formatNumber(valueNumber)} g` : "–";
+    const goalText = Number.isFinite(goalNumber) ? this._formatNumber(goalNumber) : "–";
+    const percent = this._percent(valueNumber, goalNumber);
+
+    return `
+      <div class="macro-item">
+        <div class="macro-title">${label}</div>
+        <div class="macro-value">${valueText} <span>/ ${goalText}</span></div>
+        <div class="track"><div class="fill ${className}" style="width:${percent}%"></div></div>
+      </div>`;
+  }
+
+  _renderMacros(nutritionEntity) {
+    const t = this._t();
+    const attrs = nutritionEntity?.attributes || {};
+    const totals = attrs.totals || {};
+    const goals = attrs.goals || {};
+
+    return `
+      <ha-card class="mfp-card macros-card">
+        <div class="macro-grid">
+          ${this._macroBlock(t.carbohydrates, totals.carbohydrates, goals.carbohydrates, "carbs-fill")}
+          ${this._macroBlock(t.fat, totals.fat, goals.fat, "fat-fill")}
+          ${this._macroBlock(t.protein, totals.protein, goals.protein, "protein-fill")}
+        </div>
+      </ha-card>`;
+  }
+
+  _smallValue(label, valueText, goalText = "") {
+    return `
+      <div class="small-item">
+        <div class="small-title">${label}</div>
+        <div class="small-value">${valueText}${goalText ? `<span>${goalText}</span>` : ""}</div>
+      </div>`;
+  }
+
+  _renderSmallNutrients(nutritionEntity) {
+    const t = this._t();
+    const attrs = nutritionEntity?.attributes || {};
+    const totals = attrs.totals || {};
+    const goals = attrs.goals || {};
+
+    const water = this._number(attrs.water_ml);
+    const fiber = this._number(totals.fiber);
+    const fiberGoal = this._number(goals.fiber);
+    const sugar = this._number(totals.sugar);
+    const sugarGoal = this._number(goals.sugar);
+
+    const waterText = Number.isFinite(water) ? `${this._formatNumber(water)} mL` : "–";
+    const fiberText = Number.isFinite(fiber) ? `${this._formatNumber(fiber, 1)} g` : "–";
+    const fiberGoalText = Number.isFinite(fiberGoal) ? ` / ${this._formatNumber(fiberGoal)} g` : "";
+    const sugarText = Number.isFinite(sugar) ? `${this._formatNumber(sugar, 1)} g` : "–";
+    const sugarGoalText = Number.isFinite(sugarGoal) ? ` / ${this._formatNumber(sugarGoal)} g` : "";
+
+    return `
+      <ha-card class="mfp-card small-card">
+        <div class="small-grid">
+          ${this._smallValue(t.water, waterText)}
+          ${this._smallValue(t.fiber, fiberText, fiberGoalText)}
+          ${this._smallValue(t.sugar, sugarText, sugarGoalText)}
+        </div>
+      </ha-card>`;
+  }
+
+  _renderNutritionDetails(nutritionEntity) {
+    if (this._config?.show_nutrition_details === false) return "";
+
+    const t = this._t();
+    const totals = nutritionEntity?.attributes?.totals || {};
+    const defs = [
+      ["saturated_fat", t.saturatedFat, "g", 1],
+      ["polyunsaturated_fat", t.polyunsaturatedFat, "g", 1],
+      ["monounsaturated_fat", t.monounsaturatedFat, "g", 1],
+      ["trans_fat", t.transFat, "g", 1],
+      ["cholesterol", t.cholesterol, "mg", 0],
+      ["sodium", t.sodium, "mg", 0],
+      ["potassium", t.potassium, "mg", 0],
+      ["added_sugars", t.addedSugars, "g", 1],
+    ];
+
+    const rows = defs.flatMap(([key, label, unit, decimals]) => {
+      const value = this._number(totals[key]);
+      if (!Number.isFinite(value)) return [];
+      return [
+        `<div class="nutrition-detail-row"><span>${label}</span><b>${this._formatNumber(value, decimals)} ${unit}</b></div>`,
+      ];
+    });
+
+    if (!rows.length) return "";
+
+    return `
+      <ha-card class="mfp-card nutrition-details-card">
+        <div class="nutrition-details-title">${t.nutritionDetails}</div>
+        <div>${rows.join("")}</div>
+      </ha-card>`;
   }
 
   _renderDiary(nutritionEntity) {
@@ -259,17 +449,17 @@ class HAMyFitnessPalCard extends HTMLElement {
       const key = group.info.key;
       const expanded = this._expandedMeals.has(key);
       const mealKcal = group.items.reduce((sum, item) => {
-        const value = Number(item?.nutrients?.energy);
+        const value = this._number(item?.nutrients?.energy);
         return sum + (Number.isFinite(value) ? value : 0);
       }, 0);
 
       const foods = group.items.map((item) => {
-        const kcal = Number(item?.nutrients?.energy);
+        const kcal = this._number(item?.nutrients?.energy);
         const foodName = this._escape(item?.food || t.unknownFood);
         const brand = item?.brand ? this._escape(item.brand) : "";
         const portion = this._escape(this._portion(item));
         const meta = [brand, portion].filter(Boolean).join(" · ");
-        const kcalText = Number.isFinite(kcal) ? `${Math.round(kcal)} kcal` : "–";
+        const kcalText = Number.isFinite(kcal) ? `${this._formatNumber(kcal)} kcal` : "–";
 
         return `
           <div class="food-item">
@@ -285,7 +475,7 @@ class HAMyFitnessPalCard extends HTMLElement {
         <div class="expand-row ${expanded ? "expanded" : ""}">
           <button class="expand-head meal-toggle" type="button" data-meal-key="${this._escape(key)}">
             <span>${this._escape(group.info.label)}</span>
-            <span class="summary-right">${Math.round(mealKcal)} kcal <span class="chevron">⌄</span></span>
+            <span class="summary-right">${this._formatNumber(mealKcal)} kcal <span class="chevron">⌄</span></span>
           </button>
           ${expanded ? `<div class="expand-body">${foods}</div>` : ""}
         </div>`;
@@ -310,16 +500,16 @@ class HAMyFitnessPalCard extends HTMLElement {
     const parts = [];
 
     if (strength) {
-      const sets = Number(item?.sets);
-      const reps = Number(item?.reps_per_set);
+      const sets = this._number(item?.sets);
+      const reps = this._number(item?.reps_per_set);
       const weight = this._weight(item?.weight_kg);
-      if (Number.isFinite(sets) && Number.isFinite(reps)) parts.push(`${sets} × ${reps}`);
+      if (Number.isFinite(sets) && Number.isFinite(reps)) parts.push(`${this._formatNumber(sets)} × ${this._formatNumber(reps)}`);
       if (weight) parts.push(weight);
     } else {
-      const minutes = Number(item?.duration_minutes);
-      const calories = Number(item?.calories);
-      if (Number.isFinite(minutes) && minutes > 0) parts.push(`${Math.round(minutes)} min`);
-      if (Number.isFinite(calories)) parts.push(`${Math.round(calories)} kcal`);
+      const minutes = this._number(item?.duration_minutes);
+      const calories = this._number(item?.calories);
+      if (Number.isFinite(minutes) && minutes > 0) parts.push(`${this._formatNumber(minutes)} min`);
+      if (Number.isFinite(calories)) parts.push(`${this._formatNumber(calories)} kcal`);
     }
 
     return parts.join(" · ") || t.details;
@@ -332,27 +522,27 @@ class HAMyFitnessPalCard extends HTMLElement {
     const rows = [];
 
     if (strength) {
-      const sets = Number(item?.sets);
-      const reps = Number(item?.reps_per_set);
-      const totalReps = Number(item?.total_reps);
+      const sets = this._number(item?.sets);
+      const reps = this._number(item?.reps_per_set);
+      const totalReps = this._number(item?.total_reps);
       const weight = this._weight(item?.weight_kg);
-      if (Number.isFinite(sets)) rows.push([t.sets, sets]);
-      if (Number.isFinite(reps)) rows.push([t.repsPerSet, reps]);
-      if (Number.isFinite(totalReps)) rows.push([t.totalReps, totalReps]);
+      if (Number.isFinite(sets)) rows.push([t.sets, this._formatNumber(sets)]);
+      if (Number.isFinite(reps)) rows.push([t.repsPerSet, this._formatNumber(reps)]);
+      if (Number.isFinite(totalReps)) rows.push([t.totalReps, this._formatNumber(totalReps)]);
       if (weight) rows.push([t.weightPerSet, weight]);
     } else {
-      const minutes = Number(item?.duration_minutes);
-      const calories = Number(item?.calories);
-      const mets = Number(item?.mets);
+      const minutes = this._number(item?.duration_minutes);
+      const calories = this._number(item?.calories);
+      const mets = this._number(item?.mets);
       const start = this._time(item?.start_time);
-      const avgHr = Number(item?.avg_heart_rate);
-      const maxHr = Number(item?.max_heart_rate);
-      if (Number.isFinite(minutes) && minutes > 0) rows.push([t.duration, `${Math.round(minutes)} min`]);
-      if (Number.isFinite(calories)) rows.push([t.calories, `${Math.round(calories)} kcal`]);
-      if (Number.isFinite(mets) && mets > 0) rows.push(["METS", Math.round(mets * 100) / 100]);
+      const avgHr = this._number(item?.avg_heart_rate);
+      const maxHr = this._number(item?.max_heart_rate);
+      if (Number.isFinite(minutes) && minutes > 0) rows.push([t.duration, `${this._formatNumber(minutes)} min`]);
+      if (Number.isFinite(calories)) rows.push([t.calories, `${this._formatNumber(calories)} kcal`]);
+      if (Number.isFinite(mets) && mets > 0) rows.push(["METS", this._formatNumber(mets, 2)]);
       if (start) rows.push([t.start, start]);
-      if (Number.isFinite(avgHr)) rows.push([t.avgHeartRate, `${Math.round(avgHr)} bpm`]);
-      if (Number.isFinite(maxHr)) rows.push([t.maxHeartRate, `${Math.round(maxHr)} bpm`]);
+      if (Number.isFinite(avgHr)) rows.push([t.avgHeartRate, `${this._formatNumber(avgHr)} bpm`]);
+      if (Number.isFinite(maxHr)) rows.push([t.maxHeartRate, `${this._formatNumber(maxHr)} bpm`]);
     }
 
     return rows
@@ -364,11 +554,11 @@ class HAMyFitnessPalCard extends HTMLElement {
     const t = this._t();
     const attrs = exerciseEntity?.attributes || {};
     const entries = Array.isArray(attrs.entries) ? attrs.entries : [];
-    const kcal = Number(attrs.exercise_calories);
-    const minutes = Number(attrs.exercise_duration_minutes);
+    const kcal = this._number(attrs.exercise_calories);
+    const minutes = this._number(attrs.exercise_duration_minutes);
     const summary = [`${entries.length} ${t.pass}`];
-    if (Number.isFinite(kcal)) summary.push(`${Math.round(kcal)} kcal`);
-    if (Number.isFinite(minutes) && minutes > 0) summary.push(`${Math.round(minutes)} min`);
+    if (Number.isFinite(kcal)) summary.push(`${this._formatNumber(kcal)} kcal`);
+    if (Number.isFinite(minutes) && minutes > 0) summary.push(`${this._formatNumber(minutes)} min`);
 
     const allExpanded = entries.length > 0 && entries.every((item, index) => {
       const key = String(item?.id || index);
@@ -425,6 +615,130 @@ class HAMyFitnessPalCard extends HTMLElement {
           border-radius: var(--ha-card-border-radius, 22px);
           background: var(--ha-card-background, var(--card-background-color));
           box-shadow: var(--ha-card-box-shadow, none);
+        }
+
+        .calories-card {
+          padding: 26px 28px 24px;
+          border-radius: var(--ha-card-border-radius, 28px);
+        }
+
+        .calories-title {
+          font-size: 22px;
+          font-weight: 500;
+          margin-bottom: 18px;
+        }
+
+        .calories-line {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 18px;
+        }
+
+        .main-value {
+          font-size: 30px;
+          font-weight: 700;
+        }
+
+        .remaining-value {
+          font-size: 28px;
+          font-weight: 700;
+        }
+
+        .muted {
+          font-size: 22px;
+          opacity: .42;
+        }
+
+        .track {
+          width: 100%;
+          height: 14px;
+          border-radius: 999px;
+          overflow: hidden;
+          background: color-mix(in srgb, var(--primary-text-color) 18%, transparent);
+        }
+
+        .fill {
+          height: 100%;
+          border-radius: inherit;
+          transition: width .35s ease;
+        }
+
+        .calories-fill { background: #18bdf2; }
+        .carbs-fill { background: #00c9bd; }
+        .fat-fill { background: #cc62df; }
+        .protein-fill { background: #ffac18; }
+
+        .macros-card {
+          padding: 24px 26px 26px;
+          border-radius: var(--ha-card-border-radius, 28px);
+        }
+
+        .macro-grid,
+        .small-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 22px;
+        }
+
+        .macro-title,
+        .small-title {
+          font-size: 16px;
+          opacity: .72;
+          margin-bottom: 7px;
+        }
+
+        .macro-value,
+        .small-value {
+          font-size: 20px;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .macro-value {
+          margin-bottom: 16px;
+        }
+
+        .macro-value span,
+        .small-value span {
+          font-weight: 400;
+          opacity: .5;
+        }
+
+        .small-card {
+          padding: 20px 26px;
+        }
+
+        .nutrition-details-card {
+          padding: 20px 24px 18px;
+        }
+
+        .nutrition-details-title {
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 10px;
+        }
+
+        .nutrition-detail-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 7px 0;
+          font-size: 15px;
+        }
+
+        .nutrition-detail-row + .nutrition-detail-row {
+          border-top: 1px solid color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        }
+
+        .nutrition-detail-row span {
+          opacity: .72;
+        }
+
+        .nutrition-detail-row b {
+          font-weight: 600;
+          white-space: nowrap;
         }
 
         .section-header {
@@ -595,9 +909,93 @@ class HAMyFitnessPalCard extends HTMLElement {
           color: var(--error-color);
         }
 
+        @media (max-width: 520px) {
+          .calories-card {
+            padding: 24px 22px 22px;
+          }
+
+          .main-value {
+            font-size: 27px;
+          }
+
+          .remaining-value {
+            font-size: 25px;
+          }
+
+          .muted {
+            font-size: 18px;
+          }
+
+          .macro-grid,
+          .small-grid {
+            gap: 12px;
+          }
+
+          .macro-title,
+          .small-title {
+            font-size: 14px;
+          }
+
+          .macro-value,
+          .small-value {
+            font-size: 18px;
+          }
+        }
+
         @media (max-width: 430px) {
           .mfp-card {
             padding: 18px 16px 20px;
+          }
+
+          .calories-card {
+            padding: 22px 18px 20px;
+          }
+
+          .calories-title {
+            font-size: 20px;
+          }
+
+          .calories-line {
+            gap: 10px;
+          }
+
+          .main-value {
+            font-size: 24px;
+          }
+
+          .remaining-value {
+            font-size: 22px;
+          }
+
+          .muted {
+            font-size: 16px;
+          }
+
+          .macros-card {
+            padding: 20px 16px 22px;
+          }
+
+          .macro-grid,
+          .small-grid {
+            gap: 10px;
+          }
+
+          .macro-title,
+          .small-title {
+            font-size: 13px;
+          }
+
+          .macro-value,
+          .small-value {
+            font-size: 16px;
+          }
+
+          .track {
+            height: 11px;
+          }
+
+          .small-card {
+            padding: 18px 16px;
           }
 
           .section-header {
@@ -635,13 +1033,17 @@ class HAMyFitnessPalCard extends HTMLElement {
       return;
     }
 
+    const calories = this._renderCalories(nutritionEntity);
+    const macros = this._renderMacros(nutritionEntity);
+    const smallNutrients = this._renderSmallNutrients(nutritionEntity);
+    const nutritionDetails = this._renderNutritionDetails(nutritionEntity);
     const diary = this._renderDiary(nutritionEntity);
     const training =
       this._config.show_training !== false && this._config.exercise_entity
         ? this._renderTraining(exerciseEntity)
         : "";
 
-    this.shadowRoot.innerHTML = `${this._styles()}<div class="stack">${diary}${training}</div>`;
+    this.shadowRoot.innerHTML = `${this._styles()}<div class="stack">${calories}${macros}${smallNutrients}${nutritionDetails}${diary}${training}</div>`;
   }
 
   _handleClick(event) {
@@ -718,7 +1120,7 @@ if (!window.customCards.some((card) => card.type === "ha-myfitnesspal-card")) {
   window.customCards.push({
     type: "ha-myfitnesspal-card",
     name: "HA-MyFitnessPal Card",
-    description: "Read-only MyFitnessPal diary and exercise card for Home Assistant.",
+    description: "Read-only MyFitnessPal nutrition diary and exercise dashboard for Home Assistant.",
     preview: true,
   });
 }
