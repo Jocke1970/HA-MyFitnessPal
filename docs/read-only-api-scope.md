@@ -73,19 +73,21 @@ Exercise retrieval is fail-soft. If that endpoint fails while food/nutrition sti
 
 #### Strength-entry normalization
 
-Two deliberately asymmetric live tests confirmed the field mapping:
+An explicit asymmetric live test entered **4 Set / 7 Reps / 12 kg** in the MyFitnessPal UI and returned:
+
+- `sets: 4`
+- `reps_per_set: 7`
+- `quantity: 28`
+- `weight_per_set: {unit: pounds, value: 26.4555}`
+
+This confirms the direct field mapping used by the integration:
 
 - MyFitnessPal UI `Set` -> API `sets`
 - MyFitnessPal UI `Reps` -> API `reps_per_set`
 - API `quantity` -> total repetitions (`sets * reps_per_set` in the tested data)
 - MyFitnessPal UI `Vikt` -> API `weight_per_set`
 
-Examples:
-
-- 3 sets x 10 reps returned `sets: 3`, `reps_per_set: 10`, `quantity: 30`
-- 4 sets x 7 reps returned `sets: 4`, `reps_per_set: 7`, `quantity: 28`
-
-`weight_per_set` was returned as pounds even though the MyFitnessPal UI was being used metrically. A 12 kg test entry returned approximately 26.4555 lb. Therefore HA-MyFitnessPal does not infer the display unit from country/locale and does not assume that the raw API unit matches the user's MyFitnessPal presentation.
+`weight_per_set` was returned as pounds even though the MyFitnessPal UI was being used metrically. The 12 kg test entry returned approximately 26.4555 lb. Therefore HA-MyFitnessPal does not infer the display unit from country/locale and does not assume that the raw API unit matches the user's MyFitnessPal presentation.
 
 Unit policy for exercise weights:
 
