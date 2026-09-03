@@ -12,6 +12,8 @@
 - Add a compact Water / Fiber / Sugar row to the Swedish and English dashboard examples.
 - Harden button-card JavaScript against missing/unknown values instead of treating them as zero or throwing template errors.
 - Add tested Swedish and English dashboard screenshots to the repository and README.
+- Add dynamic Nutrition details cards to both dashboard examples for secondary nutrients already present in diary totals.
+- Hide missing secondary nutrients from the dashboard and hide the whole details card when none are available.
 
 ## 0.3.0-beta.1
 
