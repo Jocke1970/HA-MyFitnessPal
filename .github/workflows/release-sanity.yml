@@ -1,0 +1,26 @@
+name: Release sanity
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate manifest JSON
+        run: python -m json.tool custom_components/myfitnesspal/manifest.json >/dev/null
+
+      - name: Validate release version wiring
+        run: python scripts/check_release_version.py
+
+      - name: Check frontend loader syntax
+        run: node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js
+
+      - name: Check frontend card syntax
+        run: node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js
