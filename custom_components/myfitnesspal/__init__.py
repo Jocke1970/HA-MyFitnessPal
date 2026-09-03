@@ -2,13 +2,37 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
 
 from .coordinator import MyFitnessPalCoordinator
 
 PLATFORMS = [Platform.SENSOR]
+
+_FRONTEND_URL = "/myfitnesspal_static"
+_FRONTEND_PATH = Path(__file__).parent / "frontend"
+_CARD_URL = f"{_FRONTEND_URL}/ha-myfitnesspal-card.js?v=0.4.0-beta.2"
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up integration-level frontend resources."""
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                _FRONTEND_URL,
+                str(_FRONTEND_PATH),
+                cache_headers=False,
+            )
+        ]
+    )
+    add_extra_js_url(hass, _CARD_URL)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
