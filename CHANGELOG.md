@@ -7,6 +7,10 @@
 - Reuse the already-fetched diary totals, so the extra nutrient sensors add no additional MyFitnessPal API requests.
 - Add Swedish and English translations for the secondary nutrient sensors.
 - Document the currently available read-only API surfaces and likely next development steps.
+- Refactor both Lovelace examples to use the Nutrition diary sensor as their single data source.
+- Remove the dashboard dependency on language-specific individual nutrient entity IDs.
+- Add a compact Water / Fiber / Sugar row to the Swedish and English dashboard examples.
+- Harden button-card JavaScript against missing/unknown values instead of treating them as zero or throwing template errors.
 
 ## 0.3.0-beta.1
 
