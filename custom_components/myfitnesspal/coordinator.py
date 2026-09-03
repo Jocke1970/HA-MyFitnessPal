@@ -27,6 +27,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_POUNDS_TO_KG = 0.45359237
+
 
 @dataclass(slots=True)
 class MyFitnessPalData:
@@ -39,6 +41,10 @@ class MyFitnessPalData:
     goal_source: str
     remaining: dict[str, float]
     water_ml: float | None
+    exercise_entries: list[dict[str, Any]] | None
+    calorie_adjustments: list[dict[str, Any]] | None
+    exercise_calories: float | None
+    exercise_duration_minutes: float | None
 
 
 def _nutrient_value(value: Any) -> float | None:
@@ -141,6 +147,112 @@ def _sum_totals(entries: list[dict[str, Any]]) -> dict[str, float]:
     return totals
 
 
+def _weight_in_kg(raw: Any) -> float | None:
+    """Normalize a MyFitnessPal exercise weight to kilograms."""
+    if not isinstance(raw, dict):
+        return None
+
+    value = raw.get("value")
+    if not isinstance(value, Number):
+        return None
+
+    unit = str(raw.get("unit") or "").strip().lower()
+    numeric = float(value)
+
+    if unit in {"kilogram", "kilograms", "kg"}:
+        return numeric
+    if unit in {"gram", "grams", "g"}:
+        return numeric / 1000
+    if unit in {"pound", "pounds", "lb", "lbs"}:
+        return numeric * _POUNDS_TO_KG
+
+    return None
+
+
+def _is_calorie_adjustment(entry: dict[str, Any]) -> bool:
+    """Return whether an exercise diary item is a partner calorie adjustment."""
+    exercise = entry.get("exercise") or {}
+    return bool(
+        entry.get("is_calorie_adjustment")
+        or exercise.get("is_calorie_adjustment")
+    )
+
+
+def _normalize_exercise_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a real cardio or strength exercise diary entry."""
+    exercise = entry.get("exercise") or {}
+    duration_seconds = entry.get("duration")
+    if not isinstance(duration_seconds, Number):
+        duration_seconds = None
+
+    raw_weight = entry.get("weight_per_set")
+    weight_kg = _weight_in_kg(raw_weight)
+
+    return {
+        "id": entry.get("id"),
+        "date": entry.get("date"),
+        "name": exercise.get("description"),
+        "type": exercise.get("type"),
+        "mets": _nutrient_value(exercise.get("mets")),
+        "duration_seconds": float(duration_seconds) if duration_seconds is not None else None,
+        "duration_minutes": round(float(duration_seconds) / 60, 2)
+        if duration_seconds is not None
+        else None,
+        "calories": _nutrient_value(entry.get("energy")),
+        "start_time": entry.get("start_time"),
+        "created_at": entry.get("created_at"),
+        "avg_heart_rate": entry.get("avg_heart_rate"),
+        "max_heart_rate": entry.get("max_heart_rate"),
+        "sets": entry.get("sets"),
+        "reps_per_set": entry.get("reps_per_set"),
+        "total_reps": entry.get("quantity"),
+        "weight_kg": round(weight_kg, 3) if weight_kg is not None else None,
+        "raw_weight": raw_weight if isinstance(raw_weight, dict) else None,
+    }
+
+
+def _normalize_calorie_adjustment(entry: dict[str, Any]) -> dict[str, Any]:
+    """Normalize partner calorie-adjustment metadata separately from exercise."""
+    exercise = entry.get("exercise") or {}
+    contents = entry.get("contents")
+    return {
+        "id": entry.get("id"),
+        "date": entry.get("date"),
+        "name": exercise.get("description"),
+        "calories": _nutrient_value(entry.get("energy")),
+        "created_at": entry.get("created_at"),
+        "contents": contents if isinstance(contents, list) else [],
+    }
+
+
+def _normalize_exercise_diary(
+    entries: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float, float]:
+    """Split real exercise from calorie adjustments and calculate daily totals."""
+    exercise_entries: list[dict[str, Any]] = []
+    calorie_adjustments: list[dict[str, Any]] = []
+
+    for entry in entries:
+        if _is_calorie_adjustment(entry):
+            calorie_adjustments.append(_normalize_calorie_adjustment(entry))
+        else:
+            exercise_entries.append(_normalize_exercise_entry(entry))
+
+    exercise_calories = sum(
+        entry.get("calories") or 0.0 for entry in exercise_entries
+    )
+    exercise_duration_minutes = sum(
+        entry.get("duration_minutes") or 0.0 for entry in exercise_entries
+    )
+
+    return (
+        exercise_entries,
+        calorie_adjustments,
+        round(exercise_calories, 2),
+        round(exercise_duration_minutes, 2),
+    )
+
+
 class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
     """Coordinate MyFitnessPal polling."""
 
@@ -180,6 +292,29 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         except (MfpApiError, httpx.HTTPError) as err:
             _LOGGER.debug("Could not read MyFitnessPal water intake: %s", err)
 
+        # Exercise uses a separate diary request. Keep it fail-soft so an
+        # exercise-specific endpoint problem does not take down nutrition data.
+        exercise_entries: list[dict[str, Any]] | None = None
+        calorie_adjustments: list[dict[str, Any]] | None = None
+        exercise_calories: float | None = None
+        exercise_duration_minutes: float | None = None
+        try:
+            raw_exercise = self._client.get_exercise_diary(target_date)
+            (
+                exercise_entries,
+                calorie_adjustments,
+                exercise_calories,
+                exercise_duration_minutes,
+            ) = _normalize_exercise_diary(raw_exercise)
+        except MfpAuthError:
+            raise
+        except MfpApiError as err:
+            if err.response.status_code == 401:
+                raise
+            _LOGGER.debug("Could not read MyFitnessPal exercise diary: %s", err)
+        except httpx.HTTPError as err:
+            _LOGGER.debug("Could not read MyFitnessPal exercise diary: %s", err)
+
         data = MyFitnessPalData(
             date=target_date.isoformat(),
             totals=totals,
@@ -188,6 +323,10 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
             goal_source=goal_source,
             remaining=_remaining_values(totals, goals),
             water_ml=water_ml,
+            exercise_entries=exercise_entries,
+            calorie_adjustments=calorie_adjustments,
+            exercise_calories=exercise_calories,
+            exercise_duration_minutes=exercise_duration_minutes,
         )
 
         # mfp-api 0.1.0 does not expose the current session publicly. The package is
