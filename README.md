@@ -56,14 +56,17 @@ The examples provide:
 
 - a calorie card with consumed, goal, remaining and progress bar
 - carbohydrates, fat and protein with individual goal progress bars
+- a compact Water / Fiber / Sugar row
 - a diary card grouped by meal with food entries and calories
+
+Both examples intentionally use the **Nutrition diary sensor as the single data source**. Calories, macros, goals, remaining values, water and diary entries are all read from that sensor's attributes. This avoids depending on language-specific entity IDs for each individual nutrient sensor and makes the examples more robust.
 
 They intentionally do **not** include food logging controls because this integration is read-only.
 
 - Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
 - English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
 
-The examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). Entity IDs may need to be adjusted if Home Assistant generated different IDs in your installation.
+The examples currently require [`custom:button-card`](https://github.com/custom-cards/button-card). The tested installation uses `sensor.myfitnesspal_naringsdagbok`; if your Nutrition diary entity has another ID, replace that single ID throughout the example.
 
 ## Installation
 
