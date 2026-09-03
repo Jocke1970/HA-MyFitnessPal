@@ -1,7 +1,10 @@
-# HA-MyFitnessPal first-party Lovelace card - Swedish example
+# HA-MyFitnessPal first-party Lovelace dashboard card - Swedish example
 #
 # The card JavaScript is bundled with the integration and auto-loaded by
 # HA-MyFitnessPal. No custom:button-card dependency is required for this card.
+#
+# The card renders Calories, macros, Water/Fiber/Sugar, dynamic nutrition
+# details, the expandable food diary and the expandable exercise diary.
 #
 # Tested entity IDs in the development installation:
 #   sensor.myfitnesspal_naringsdagbok
@@ -12,3 +15,5 @@ nutrition_entity: sensor.myfitnesspal_naringsdagbok
 exercise_entity: sensor.ovrigt_myfitnesspal_traningsdagbok
 language: sv
 show_training: true
+# Optional: set false to hide the secondary Nutrition details section.
+show_nutrition_details: true
