@@ -68,12 +68,14 @@ The repository includes read-only Lovelace examples inspired by the information 
 
 Starting with the 0.4.0 beta development cycle, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
 
-As of `0.4.0-beta.5`, the first-party card contains the complete dashboard flow:
+As of `0.4.0-beta.6`, the first-party card contains the complete dashboard flow:
 
 - Calories with consumed amount, goal, remaining amount and progress bar
+- subtle MyFitnessPal branding using the bundled `icon.png`
 - Carbohydrates, Fat and Protein with individual goal progress bars
 - compact Water / Fiber / Sugar row
 - dynamic Nutrition details that only show secondary nutrients MyFitnessPal actually supplied
+- Nutrition details collapsed by default, with a compact summary showing how many secondary nutrient values are available
 - collapsed meal rows showing meal name and calories
 - click-to-expand food details for each meal
 - working **See all / Se alla** and **Hide all / Dölj alla** controls
@@ -95,7 +97,7 @@ language: sv
 show_training: true
 ```
 
-`show_nutrition_details: false` can be used to hide the dynamic secondary nutrient section if desired. Entity IDs can differ between installations, so configure the actual entities created by Home Assistant.
+`show_nutrition_details: false` can be used to hide the dynamic secondary nutrient section entirely. When enabled, the section is present but starts collapsed for a more compact overview. Entity IDs can differ between installations, so configure the actual entities created by Home Assistant.
 
 See [`examples/lovelace-ha-myfitnesspal-card.yaml`](examples/lovelace-ha-myfitnesspal-card.yaml) for the development example.
 
@@ -196,7 +198,7 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.4.0-beta.5**
+Current development version on `dev`: **0.4.0-beta.6**
 
 The 0.4.0 beta adds read-only exercise diary support and is now testing the complete bundled first-party Lovelace dashboard before promotion to a stable release.
 
