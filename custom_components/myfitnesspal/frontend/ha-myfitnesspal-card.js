@@ -1,4 +1,4 @@
-const HA_MFP_CARD_VERSION = "0.4.0-beta.3";
+const HA_MFP_CARD_VERSION = "0.4.0-beta.5";
 
 const I18N = {
   sv: {
