@@ -57,9 +57,12 @@ The examples provide:
 - a calorie card with consumed, goal, remaining and progress bar
 - carbohydrates, fat and protein with individual goal progress bars
 - a compact Water / Fiber / Sugar row
+- a dynamic Nutrition details card for secondary nutrients such as saturated fat, cholesterol and sodium
 - a diary card grouped by meal with food entries and calories
 
-Both examples intentionally use the **Nutrition diary sensor as the single data source**. Calories, macros, goals, remaining values, water and diary entries are all read from that sensor's attributes. This avoids depending on language-specific entity IDs for each individual nutrient sensor and makes the examples more robust.
+The Nutrition details card only shows nutrient values MyFitnessPal actually supplied for the current day. Missing nutrients are omitted, and the complete card hides itself when none of the supported secondary values are available.
+
+Both examples intentionally use the **Nutrition diary sensor as the single data source**. Calories, macros, goals, remaining values, water, secondary nutrient details and diary entries are all read from that sensor's attributes. This avoids depending on language-specific entity IDs for each individual nutrient sensor and makes the examples more robust.
 
 They intentionally do **not** include food logging controls because this integration is read-only.
 
