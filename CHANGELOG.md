@@ -14,6 +14,7 @@
 - Add tested Swedish and English dashboard screenshots to the repository and README.
 - Add dynamic Nutrition details cards to both dashboard examples for secondary nutrients already present in diary totals.
 - Hide missing secondary nutrients from the dashboard and hide the whole details card when none are available.
+- Tighten the English macro-card label styling so the full Carbohydrates label fits narrow mobile layouts.
 
 ## 0.3.0-beta.1
 
