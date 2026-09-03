@@ -1,0 +1,346 @@
+# MyFitnessPal Lovelace dashboard example
+# Branch: dev
+# Requires: custom:button-card
+#
+# This card is intentionally read-only. Tapping the diary opens the
+# Home Assistant more-info dialog for the Nutrition diary sensor.
+#
+# Entity IDs below match a Swedish Home Assistant installation. If Home
+# Assistant generated different entity IDs, replace them accordingly.
+
+type: vertical-stack
+cards:
+  # Calories
+  - type: custom:button-card
+    entity: sensor.myfitnesspal_kalorier
+    show_icon: false
+    show_name: false
+    show_state: false
+    tap_action:
+      action: more-info
+    custom_fields:
+      title: Kalorier
+      consumed: >
+        [[[
+          const value = Number(entity.state);
+          const goal = Number(entity.attributes.goal);
+          const valueText = Number.isFinite(value) ? Math.round(value) : '–';
+          const goalText = Number.isFinite(goal) ? Math.round(goal) : '–';
+          return `<span class="mfp-main-value">${valueText} kcal</span><span class="mfp-muted"> / ${goalText}</span>`;
+        ]]]
+      remaining: >
+        [[[
+          const remaining = Number(entity.attributes.remaining);
+          if (!Number.isFinite(remaining)) return '<span class="mfp-muted">– kvar</span>';
+          return `<span class="mfp-remaining">${Math.max(0, Math.round(remaining))}</span><span class="mfp-muted"> kvar</span>`;
+        ]]]
+      bar: >
+        [[[
+          const value = Number(entity.state);
+          const goal = Number(entity.attributes.goal);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
+            ? Math.min(100, Math.max(0, value / goal * 100))
+            : 0;
+          return `
+            <div class="mfp-track">
+              <div class="mfp-fill mfp-calories" style="width:${pct}%"></div>
+            </div>`;
+        ]]]
+    styles:
+      card:
+        - padding: 28px 30px 26px
+        - border-radius: 28px
+      grid:
+        - grid-template-areas: '"title title" "consumed remaining" "bar bar"'
+        - grid-template-columns: 1fr auto
+        - grid-template-rows: auto auto auto
+        - row-gap: 18px
+      custom_fields:
+        title:
+          - justify-self: start
+          - font-size: 22px
+          - font-weight: 500
+        consumed:
+          - justify-self: start
+          - align-self: end
+        remaining:
+          - justify-self: end
+          - align-self: end
+        bar:
+          - width: 100%
+    extra_styles: |
+      .mfp-main-value {
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .mfp-remaining {
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .mfp-muted {
+        font-size: 22px;
+        opacity: 0.42;
+      }
+      .mfp-track {
+        width: 100%;
+        height: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.28);
+      }
+      .mfp-fill {
+        height: 100%;
+        border-radius: inherit;
+        transition: width .35s ease;
+      }
+      .mfp-calories {
+        background: #18bdf2;
+      }
+
+  # Macros
+  - type: custom:button-card
+    show_icon: false
+    show_name: false
+    show_state: false
+    triggers_update:
+      - sensor.myfitnesspal_kolhydrater
+      - sensor.myfitnesspal_fett
+      - sensor.myfitnesspal_protein
+    custom_fields:
+      carbohydrates: >
+        [[[
+          const e = states['sensor.myfitnesspal_kolhydrater'];
+          if (!e) return 'Kolhydrater<br><b>–</b>';
+          const value = Number(e.state);
+          const goal = Number(e.attributes.goal);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
+            ? Math.min(100, Math.max(0, value / goal * 100))
+            : 0;
+          const v = Number.isFinite(value) ? Math.round(value) : '–';
+          const g = Number.isFinite(goal) ? Math.round(goal) : '–';
+          return `
+            <div class="mfp-macro-title">Kolhydrater</div>
+            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
+            <div class="mfp-track"><div class="mfp-fill mfp-carbs" style="width:${pct}%"></div></div>`;
+        ]]]
+      fat: >
+        [[[
+          const e = states['sensor.myfitnesspal_fett'];
+          if (!e) return 'Fett<br><b>–</b>';
+          const value = Number(e.state);
+          const goal = Number(e.attributes.goal);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
+            ? Math.min(100, Math.max(0, value / goal * 100))
+            : 0;
+          const v = Number.isFinite(value) ? Math.round(value) : '–';
+          const g = Number.isFinite(goal) ? Math.round(goal) : '–';
+          return `
+            <div class="mfp-macro-title">Fett</div>
+            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
+            <div class="mfp-track"><div class="mfp-fill mfp-fat" style="width:${pct}%"></div></div>`;
+        ]]]
+      protein: >
+        [[[
+          const e = states['sensor.myfitnesspal_protein'];
+          if (!e) return 'Protein<br><b>–</b>';
+          const value = Number(e.state);
+          const goal = Number(e.attributes.goal);
+          const pct = Number.isFinite(value) && Number.isFinite(goal) && goal > 0
+            ? Math.min(100, Math.max(0, value / goal * 100))
+            : 0;
+          const v = Number.isFinite(value) ? Math.round(value) : '–';
+          const g = Number.isFinite(goal) ? Math.round(goal) : '–';
+          return `
+            <div class="mfp-macro-title">Protein</div>
+            <div class="mfp-macro-value">${v} g <span>/ ${g}</span></div>
+            <div class="mfp-track"><div class="mfp-fill mfp-protein" style="width:${pct}%"></div></div>`;
+        ]]]
+    styles:
+      card:
+        - padding: 26px 28px 28px
+        - border-radius: 28px
+      grid:
+        - grid-template-areas: '"carbohydrates fat protein"'
+        - grid-template-columns: repeat(3, 1fr)
+        - column-gap: 22px
+      custom_fields:
+        carbohydrates:
+          - text-align: left
+        fat:
+          - text-align: left
+        protein:
+          - text-align: left
+    extra_styles: |
+      .mfp-macro-title {
+        font-size: 21px;
+        margin-bottom: 10px;
+      }
+      .mfp-macro-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 22px;
+        white-space: nowrap;
+      }
+      .mfp-macro-value span {
+        font-weight: 400;
+        opacity: 0.55;
+      }
+      .mfp-track {
+        width: 100%;
+        height: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.28);
+      }
+      .mfp-fill {
+        height: 100%;
+        border-radius: inherit;
+        transition: width .35s ease;
+      }
+      .mfp-carbs { background: #00c9bd; }
+      .mfp-fat { background: #cc62df; }
+      .mfp-protein { background: #ffac18; }
+
+  # Diary
+  - type: custom:button-card
+    entity: sensor.myfitnesspal_naringsdagbok
+    show_icon: false
+    show_name: false
+    show_state: false
+    tap_action:
+      action: more-info
+    custom_fields:
+      header: >
+        [[[
+          return `
+            <div class="mfp-diary-header">
+              <span>Dagbok</span>
+              <span class="mfp-see-all">Se alla</span>
+            </div>`;
+        ]]]
+      diary: >
+        [[[
+          const entries = Array.isArray(entity.attributes.entries)
+            ? entity.attributes.entries
+            : [];
+
+          if (!entries.length) {
+            return '<div class="mfp-empty">Ingen mat loggad ännu.</div>';
+          }
+
+          const mealNames = {
+            Breakfast: 'Frukost',
+            Lunch: 'Lunch',
+            Dinner: 'Middag',
+            Snacks: 'Mellanmål'
+          };
+          const mealOrder = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+          const grouped = {};
+
+          for (const item of entries) {
+            const meal = item.meal || 'Other';
+            (grouped[meal] ??= []).push(item);
+          }
+
+          const orderedMeals = [
+            ...mealOrder.filter(m => grouped[m]),
+            ...Object.keys(grouped).filter(m => !mealOrder.includes(m))
+          ];
+
+          return orderedMeals.map(meal => {
+            const items = grouped[meal];
+            const kcal = items.reduce((sum, item) => {
+              const value = Number(item?.nutrients?.energy);
+              return sum + (Number.isFinite(value) ? value : 0);
+            }, 0);
+
+            const foods = items.map(item => {
+              const servings = Number(item.servings);
+              const size = item.serving_size || {};
+              const unit = size.unit || '';
+              const value = Number(size.value);
+              let portion = '';
+
+              if (Number.isFinite(servings) && Number.isFinite(value)) {
+                const amount = servings * value;
+                const rounded = Number.isInteger(amount) ? amount : Math.round(amount * 10) / 10;
+                const translatedUnit = unit === 'piece' ? 'st' : unit === 'gram' ? 'g' : unit;
+                portion = translatedUnit ? `${rounded} ${translatedUnit}` : `${rounded}`;
+              }
+
+              const foodName = item.food || 'Okänd mat';
+              return `<div class="mfp-food-row"><span>${foodName}</span><span>${portion}</span></div>`;
+            }).join('');
+
+            return `
+              <div class="mfp-meal">
+                <div class="mfp-meal-head">
+                  <span>${mealNames[meal] || meal}</span>
+                  <span>${Math.round(kcal)} kcal</span>
+                </div>
+                ${foods}
+              </div>`;
+          }).join('');
+        ]]]
+    styles:
+      card:
+        - padding: 20px 22px 22px
+        - border-radius: 22px
+      grid:
+        - grid-template-areas: '"header" "diary"'
+        - grid-template-columns: 1fr
+        - row-gap: 12px
+      custom_fields:
+        header:
+          - width: 100%
+        diary:
+          - width: 100%
+    extra_styles: |
+      .mfp-diary-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .mfp-see-all {
+        font-size: 14px;
+        font-weight: 500;
+        opacity: .75;
+      }
+      .mfp-meal {
+        padding: 15px 16px;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+      .mfp-meal + .mfp-meal {
+        margin-top: 10px;
+      }
+      .mfp-meal-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 9px;
+      }
+      .mfp-food-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        font-size: 14px;
+        opacity: .68;
+        padding-top: 4px;
+      }
+      .mfp-food-row span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mfp-food-row span:last-child {
+        white-space: nowrap;
+      }
+      .mfp-empty {
+        opacity: .6;
+        padding: 8px 0;
+      }
