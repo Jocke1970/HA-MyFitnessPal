@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0-beta.1
+
+- Add read-only water intake from MyFitnessPal's website JSON endpoint.
+- Add a dedicated Water sensor in milliliters.
+- Expose `water_ml` on the Nutrition diary sensor.
+- Keep water retrieval fail-soft so a water endpoint problem does not take down the core food diary update.
+- Add Swedish and English Water sensor translations.
+
 ## 0.2.1
 
 - Add a tested Swedish Lovelace dashboard example for calories, macro goals and the daily food diary.
