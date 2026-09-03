@@ -37,6 +37,14 @@
       "fat": {"name": "Fett"},
       "fiber": {"name": "Fiber"},
       "sugar": {"name": "Socker"},
+      "saturated_fat": {"name": "Mättat fett"},
+      "polyunsaturated_fat": {"name": "Fleromättat fett"},
+      "monounsaturated_fat": {"name": "Enkelomättat fett"},
+      "trans_fat": {"name": "Transfett"},
+      "cholesterol": {"name": "Kolesterol"},
+      "sodium": {"name": "Natrium"},
+      "potassium": {"name": "Kalium"},
+      "added_sugars": {"name": "Tillsatt socker"},
       "water": {"name": "Vatten"},
       "diary": {"name": "Näringsdagbok"}
     }
