@@ -38,6 +38,7 @@ class MyFitnessPalData:
     goals: dict[str, float]
     goal_source: str
     remaining: dict[str, float]
+    water_ml: float | None
 
 
 def _nutrient_value(value: Any) -> float | None:
@@ -171,6 +172,14 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         totals = _sum_totals(entries)
         goals, goal_source = _effective_goals(raw_goals, target_date)
 
+        # Water is exposed by MFP through a separate website JSON endpoint. Keep
+        # it optional so a water-endpoint problem never takes down core diary data.
+        water_ml: float | None = None
+        try:
+            water_ml = _nutrient_value(self._client.get_water(target_date))
+        except (MfpApiError, httpx.HTTPError) as err:
+            _LOGGER.debug("Could not read MyFitnessPal water intake: %s", err)
+
         data = MyFitnessPalData(
             date=target_date.isoformat(),
             totals=totals,
@@ -178,6 +187,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
             goals=goals,
             goal_source=goal_source,
             remaining=_remaining_values(totals, goals),
+            water_ml=water_ml,
         )
 
         # mfp-api 0.1.0 does not expose the current session publicly. The package is
