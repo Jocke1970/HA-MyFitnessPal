@@ -37,6 +37,7 @@
       "fat": {"name": "Fat"},
       "fiber": {"name": "Fiber"},
       "sugar": {"name": "Sugar"},
+      "water": {"name": "Water"},
       "diary": {"name": "Nutrition diary"}
     }
   }
