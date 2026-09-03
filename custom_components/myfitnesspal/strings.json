@@ -46,7 +46,10 @@
       "potassium": {"name": "Potassium"},
       "added_sugars": {"name": "Added sugars"},
       "water": {"name": "Water"},
-      "diary": {"name": "Nutrition diary"}
+      "diary": {"name": "Nutrition diary"},
+      "exercise_calories": {"name": "Exercise calories"},
+      "exercise_duration": {"name": "Exercise duration"},
+      "exercise_diary": {"name": "Exercise diary"}
     }
   }
 }
