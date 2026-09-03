@@ -1,6 +1,6 @@
 # HA-MyFitnessPal
 
-Read-only Home Assistant integration for MyFitnessPal, providing today's nutrition diary, macros and nutrient goals via MyFitnessPal's native mobile API.
+Read-only Home Assistant integration for MyFitnessPal, providing today's nutrition diary, macros, nutrient goals and exercise data via MyFitnessPal's native mobile API.
 
 > [!IMPORTANT]
 > This is an unofficial, experimental integration. It is not affiliated with or endorsed by MyFitnessPal. The underlying mobile API is not officially published and may change without notice.
@@ -11,9 +11,11 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 - Daily totals for calories, carbohydrates, protein, fat, fiber and sugar.
 - Optional secondary nutrient sensors without additional API traffic.
 - Read-only daily water intake in milliliters.
+- Read-only exercise diary with separate exercise totals and partner calorie-adjustment metadata.
 - Preserves the distinction between a nutrient that is explicitly `0` and a nutrient that MyFitnessPal did not provide.
 - Reads MyFitnessPal nutrient goals and exposes goal, remaining amount and percentage of goal when available.
 - Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals, goals and water intake.
+- Normalizes cardio and strength exercise entries without counting Garmin Connect calorie-adjustment entries as workouts.
 - Polls every 15 minutes.
 - Swedish and English entity/config-flow translations.
 - Password is used only during initial login or reauthentication and is not stored by the integration.
@@ -32,6 +34,9 @@ The integration enables these sensors by default:
 - Sugar
 - Water
 - Nutrition diary
+- Exercise calories
+- Exercise duration
+- Exercise diary
 
 The following secondary nutrient sensors are created but disabled by default. Enable the ones you want from the MyFitnessPal device/entity page in Home Assistant:
 
@@ -47,6 +52,12 @@ The following secondary nutrient sensors are created but disabled by default. En
 These secondary sensors reuse the diary data already fetched by the coordinator and therefore add no extra MyFitnessPal API requests. If MyFitnessPal does not provide a particular nutrient for the foods logged that day, the corresponding sensor remains unavailable/unknown rather than pretending the value is zero.
 
 The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals, remaining amounts and `water_ml`.
+
+The **Exercise diary** sensor exposes today's normalized real exercise entries separately from MyFitnessPal partner calorie adjustments. Its state is the number of real exercise entries, not the number of raw `exercise_entry` objects returned by MyFitnessPal. Garmin Connect calorie-adjustment entries are therefore preserved as metadata but excluded from exercise count, duration and calorie totals.
+
+Cardio entries can include duration, calories, start time, METS and optional heart-rate values. Tested strength entries include sets, reps per set, total reps and weight. Strength weight is normalized internally to kilograms while the raw MyFitnessPal value/unit is preserved in the diary metadata. In the tested account MyFitnessPal returned strength weight in pounds even though the app was configured metrically.
+
+Exercise polling adds one additional MyFitnessPal diary request per coordinator update. It is fail-soft: if the exercise endpoint fails while the nutrition endpoints still work, the nutrition entities continue updating and the exercise entities become unavailable instead of reporting false zero values.
 
 ## Lovelace dashboard
 
@@ -96,7 +107,7 @@ The password is used for the initial authentication exchange only and is not sav
 
 ## Read-only design
 
-This project intentionally treats MyFitnessPal as the place where nutrition data is entered and Home Assistant as a read-only consumer.
+This project intentionally treats MyFitnessPal as the place where nutrition and exercise data is entered and Home Assistant as a read-only consumer.
 
 The integration currently reads:
 
@@ -104,8 +115,10 @@ The integration currently reads:
 - nutrient totals
 - nutrient goals
 - water intake
+- exercise diary entries
+- partner calorie-adjustment metadata returned with the exercise diary
 
-The pinned upstream client can also read exercise diary entries and weight measurements, but HA-MyFitnessPal does not poll those endpoints yet. Multi-day reports are intentionally treated carefully because the upstream helper performs one diary request per day rather than using a server-side report endpoint.
+The pinned upstream client can also read weight measurements, but HA-MyFitnessPal does not poll that endpoint yet. Multi-day reports are intentionally treated carefully because the upstream helper performs one diary request per day rather than using a server-side report endpoint.
 
 See [`docs/read-only-api-scope.md`](docs/read-only-api-scope.md) for the current API map and likely next development steps.
 
@@ -133,7 +146,7 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 - Your MyFitnessPal password is not persisted by this integration.
 - Home Assistant stores the refresh token in the config entry, like other integration credentials/tokens.
-- Nutrition data is fetched directly from MyFitnessPal by your Home Assistant instance.
+- Nutrition and exercise data is fetched directly from MyFitnessPal by your Home Assistant instance.
 - This project does not run a proxy, relay or external cloud service of its own.
 
 ## Development workflow
@@ -145,7 +158,9 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 Current stable version on `main`: **0.3.0**
 
-`dev` is currently aligned with **0.3.0** and is ready for the next development cycle.
+Current development version on `dev`: **0.4.0-beta.1**
+
+The 0.4.0 beta adds read-only exercise diary support and is intended for testing before promotion to a stable release.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
