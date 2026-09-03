@@ -32,6 +32,22 @@ The integration currently creates:
 
 The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals and remaining amounts.
 
+## Lovelace dashboard
+
+The `dev` branch includes an experimental read-only Lovelace example inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
+
+The example provides:
+
+- a calorie card with consumed, goal, remaining and progress bar
+- carbohydrates, fat and protein with individual goal progress bars
+- a diary card grouped by meal with food entries and calories
+
+It intentionally does **not** include food logging controls because this integration is read-only.
+
+See [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml).
+
+The example currently requires [`custom:button-card`](https://github.com/custom-cards/button-card). Entity IDs may need to be adjusted if Home Assistant generated different IDs in your installation.
+
 ## Installation
 
 ### Manual installation
@@ -89,6 +105,8 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 ## Current status
 
 Current integration version: **0.2.0**
+
+`main` tracks the current tested version. Active development and UI experiments happen on `dev` before being promoted to `main`.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
