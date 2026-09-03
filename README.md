@@ -9,6 +9,7 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 
 - Read-only access to today's MyFitnessPal food diary.
 - Daily totals for calories, carbohydrates, protein, fat, fiber and sugar.
+- Optional secondary nutrient sensors without additional API traffic.
 - Read-only daily water intake in milliliters.
 - Preserves the distinction between a nutrient that is explicitly `0` and a nutrient that MyFitnessPal did not provide.
 - Reads MyFitnessPal nutrient goals and exposes goal, remaining amount and percentage of goal when available.
@@ -21,7 +22,7 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 
 ## Sensors
 
-The integration currently creates:
+The integration enables these sensors by default:
 
 - Calories
 - Carbohydrates
@@ -31,6 +32,19 @@ The integration currently creates:
 - Sugar
 - Water
 - Nutrition diary
+
+The following secondary nutrient sensors are created but disabled by default. Enable the ones you want from the MyFitnessPal device/entity page in Home Assistant:
+
+- Saturated fat
+- Polyunsaturated fat
+- Monounsaturated fat
+- Trans fat
+- Cholesterol
+- Sodium
+- Potassium
+- Added sugars
+
+These secondary sensors reuse the diary data already fetched by the coordinator and therefore add no extra MyFitnessPal API requests. If MyFitnessPal does not provide a particular nutrient for the foods logged that day, the corresponding sensor remains unavailable/unknown rather than pretending the value is zero.
 
 The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals, remaining amounts and `water_ml`.
 
@@ -79,6 +93,10 @@ The integration currently reads:
 - nutrient goals
 - water intake
 
+The pinned upstream client can also read exercise diary entries and weight measurements, but HA-MyFitnessPal does not poll those endpoints yet. Multi-day reports are intentionally treated carefully because the upstream helper performs one diary request per day rather than using a server-side report endpoint.
+
+See [`docs/read-only-api-scope.md`](docs/read-only-api-scope.md) for the current API map and likely next development steps.
+
 It does **not** expose Home Assistant services or entities for writing data back to MyFitnessPal.
 
 ## Dependency
@@ -115,7 +133,7 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 Current stable version on `main`: **0.2.1**
 
-Current development version on `dev`: **0.3.0-beta.1**
+Current development version on `dev`: **0.3.0-beta.2**
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
