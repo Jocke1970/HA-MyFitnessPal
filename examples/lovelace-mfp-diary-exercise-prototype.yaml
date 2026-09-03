@@ -1,9 +1,10 @@
-# HA-MyFitnessPal 0.4.x Lovelace prototype - Swedish UI
+# HA-MyFitnessPal 0.4.x Lovelace layout prototype - Swedish UI
 # Requires: custom:button-card
 #
-# Prototype for expandable food diary and read-only exercise diary.
-# Expansion uses a hidden checkbox + label + CSS instead of <details>, because
-# button-card can intercept native <summary> clicks in some Home Assistant views.
+# This file is now intentionally NON-INTERACTIVE.
+# button-card intercepts/blocks nested interactive HTML in some HA views, so
+# expand/collapse will be implemented in the future HA-MyFitnessPal custom card.
+# This YAML is only a visual/data-layout specification.
 #
 # Nutrition diary:
 #   sensor.myfitnesspal_naringsdagbok
@@ -12,7 +13,7 @@
 
 type: vertical-stack
 cards:
-  # Dagbok - collapsed: meal + kcal, expanded: individual foods
+  # Dagbok - compact visual specification
   - type: custom:button-card
     entity: sensor.myfitnesspal_naringsdagbok
     show_icon: false
@@ -23,10 +24,7 @@ cards:
     hold_action:
       action: none
     custom_fields:
-      header: >
-        [[[
-          return `<div class="mfp-section-header">Dagbok</div>`;
-        ]]]
+      header: Dagbok
       diary: >
         [[[
           const entries = Array.isArray(entity?.attributes?.entries) ? entity.attributes.entries : [];
@@ -75,53 +73,16 @@ cards:
             a.info.rank - b.info.rank || a.info.label.localeCompare(b.info.label, 'sv')
           );
 
-          return orderedMeals.map((group, index) => {
-            const items = group.items;
-            const mealKcal = items.reduce((sum, item) => {
+          return orderedMeals.map(group => {
+            const kcal = group.items.reduce((sum, item) => {
               const value = Number(item?.nutrients?.energy);
               return sum + (Number.isFinite(value) ? value : 0);
             }, 0);
 
-            const foods = items.map(item => {
-              const nutrients = item?.nutrients || {};
-              const kcal = Number(nutrients.energy);
-              const servings = Number(item?.servings);
-              const size = item?.serving_size || {};
-              const unit = size.unit || '';
-              const value = Number(size.value);
-              let portion = '';
-
-              if (Number.isFinite(servings) && Number.isFinite(value)) {
-                const amount = servings * value;
-                const rounded = Number.isInteger(amount) ? amount : Math.round(amount * 10) / 10;
-                const translatedUnit = unit === 'piece' ? 'st' : unit === 'gram' ? 'g' : unit;
-                portion = translatedUnit ? `${rounded} ${translatedUnit}` : `${rounded}`;
-              }
-
-              const foodName = esc(item?.food || 'Okänd mat');
-              const brand = item?.brand ? esc(item.brand) : '';
-              const meta = [brand, esc(portion)].filter(Boolean).join(' · ');
-              const kcalText = Number.isFinite(kcal) ? `${Math.round(kcal)} kcal` : '–';
-
-              return `
-                <div class="mfp-food-item">
-                  <div class="mfp-food-copy">
-                    <div class="mfp-food-name">${foodName}</div>
-                    ${meta ? `<div class="mfp-food-meta">${meta}</div>` : ''}
-                  </div>
-                  <div class="mfp-food-kcal">${kcalText}</div>
-                </div>`;
-            }).join('');
-
-            const toggleId = `mfp-meal-${index}`;
             return `
-              <div class="mfp-expand-row">
-                <input class="mfp-toggle" type="checkbox" id="${toggleId}">
-                <label class="mfp-expand-head" for="${toggleId}">
-                  <span>${esc(group.info.label)}</span>
-                  <span class="mfp-summary-right">${Math.round(mealKcal)} kcal <span class="mfp-chevron">⌄</span></span>
-                </label>
-                <div class="mfp-expand-body">${foods}</div>
+              <div class="mfp-row">
+                <span>${esc(group.info.label)}</span>
+                <span class="mfp-row-right">${Math.round(kcal)} kcal <span class="mfp-chevron">›</span></span>
               </div>`;
           }).join('');
         ]]]
@@ -135,76 +96,29 @@ cards:
         - row-gap: 12px
       custom_fields:
         header:
-          - width: 100%
+          - justify-self: start
+          - font-size: 20px
+          - font-weight: 600
         diary:
           - width: 100%
-          - pointer-events: auto
     extra_styles: |
-      .mfp-section-header { font-size: 20px; font-weight: 600; }
       .mfp-empty { opacity: .6; padding: 8px 0; }
-      .mfp-expand-row {
-        position: relative;
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.045);
-        overflow: hidden;
-      }
-      .mfp-expand-row + .mfp-expand-row { margin-top: 10px; }
-      .mfp-toggle {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-      }
-      .mfp-expand-head {
+      .mfp-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 14px;
         padding: 15px 16px;
-        cursor: pointer;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.045);
         font-size: 17px;
         font-weight: 600;
-        user-select: none;
       }
-      .mfp-summary-right { white-space: nowrap; }
-      .mfp-chevron {
-        display: inline-block;
-        margin-left: 7px;
-        opacity: .45;
-        transition: transform .18s ease;
-      }
-      .mfp-expand-body {
-        display: none;
-        padding: 2px 16px 10px;
-      }
-      .mfp-toggle:checked + .mfp-expand-head {
-        border-bottom: 1px solid rgba(128, 128, 128, .14);
-      }
-      .mfp-toggle:checked + .mfp-expand-head .mfp-chevron {
-        transform: rotate(180deg);
-      }
-      .mfp-toggle:checked + .mfp-expand-head + .mfp-expand-body {
-        display: block;
-      }
-      .mfp-food-item {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 11px 0;
-      }
-      .mfp-food-item + .mfp-food-item { border-top: 1px solid rgba(128, 128, 128, .12); }
-      .mfp-food-copy { min-width: 0; text-align: left; }
-      .mfp-food-name {
-        font-size: 15px;
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .mfp-food-meta { margin-top: 3px; font-size: 13px; opacity: .55; }
-      .mfp-food-kcal { font-size: 14px; opacity: .72; white-space: nowrap; }
+      .mfp-row + .mfp-row { margin-top: 10px; }
+      .mfp-row-right { white-space: nowrap; }
+      .mfp-chevron { margin-left: 7px; opacity: .35; }
 
-  # Träning - read-only data from the exercise diary sensor
+  # Träning - compact visual specification
   - type: custom:button-card
     entity: sensor.ovrigt_myfitnesspal_traningsdagbok
     show_icon: false
@@ -221,16 +135,14 @@ cards:
           const entries = Array.isArray(a.entries) ? a.entries : [];
           const kcal = Number(a.exercise_calories);
           const minutes = Number(a.exercise_duration_minutes);
-          const parts = [];
-          parts.push(`${entries.length} pass`);
+          const parts = [`${entries.length} pass`];
           if (Number.isFinite(kcal)) parts.push(`${Math.round(kcal)} kcal`);
           if (Number.isFinite(minutes) && minutes > 0) parts.push(`${Math.round(minutes)} min`);
           return `<div class="mfp-training-head"><span>Träning</span><span>${parts.join(' · ')}</span></div>`;
         ]]]
       workouts: >
         [[[
-          const a = entity?.attributes || {};
-          const entries = Array.isArray(a.entries) ? a.entries : [];
+          const entries = Array.isArray(entity?.attributes?.entries) ? entity.attributes.entries : [];
           if (!entries.length) return '<div class="mfp-empty">Ingen träning loggad ännu.</div>';
 
           const esc = value => String(value ?? '')
@@ -245,21 +157,12 @@ cards:
             const value = Number(kg);
             if (!Number.isFinite(value)) return null;
             if (String(massUnit).toLowerCase().startsWith('lb')) {
-              const lb = Math.round(value * 2.2046226218 * 10) / 10;
-              return `${lb} lb`;
+              return `${Math.round(value * 2.2046226218 * 10) / 10} lb`;
             }
-            const shown = Math.round(value * 10) / 10;
-            return `${shown} kg`;
+            return `${Math.round(value * 10) / 10} kg`;
           };
 
-          const showTime = value => {
-            if (!value) return null;
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return null;
-            return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-          };
-
-          return entries.map((item, index) => {
+          return entries.map(item => {
             const type = String(item?.type || '').toLowerCase();
             const isStrength = type === 'strength';
             const name = esc(item?.name || (isStrength ? 'Styrketräning' : 'Träning'));
@@ -267,50 +170,21 @@ cards:
             const duration = Number(item?.duration_minutes);
             const sets = Number(item?.sets);
             const reps = Number(item?.reps_per_set);
-            const totalReps = Number(item?.total_reps);
-            const mets = Number(item?.mets);
-            const avgHr = Number(item?.avg_heart_rate);
-            const maxHr = Number(item?.max_heart_rate);
             const weight = showWeight(item?.weight_kg);
-            const start = showTime(item?.start_time);
 
-            const summaryParts = [];
+            const parts = [];
             if (isStrength) {
-              if (Number.isFinite(sets) && Number.isFinite(reps)) summaryParts.push(`${sets} × ${reps}`);
-              if (weight) summaryParts.push(weight);
+              if (Number.isFinite(sets) && Number.isFinite(reps)) parts.push(`${sets} × ${reps}`);
+              if (weight) parts.push(weight);
             } else {
-              if (Number.isFinite(duration) && duration > 0) summaryParts.push(`${Math.round(duration)} min`);
-              if (Number.isFinite(calories)) summaryParts.push(`${Math.round(calories)} kcal`);
+              if (Number.isFinite(duration) && duration > 0) parts.push(`${Math.round(duration)} min`);
+              if (Number.isFinite(calories)) parts.push(`${Math.round(calories)} kcal`);
             }
 
-            const detailRows = [];
-            if (isStrength) {
-              if (Number.isFinite(sets)) detailRows.push(['Set', sets]);
-              if (Number.isFinite(reps)) detailRows.push(['Reps/set', reps]);
-              if (Number.isFinite(totalReps)) detailRows.push(['Totalt reps', totalReps]);
-              if (weight) detailRows.push(['Vikt/set', weight]);
-            } else {
-              if (Number.isFinite(duration) && duration > 0) detailRows.push(['Tid', `${Math.round(duration)} min`]);
-              if (Number.isFinite(calories)) detailRows.push(['Kalorier', `${Math.round(calories)} kcal`]);
-              if (Number.isFinite(mets) && mets > 0) detailRows.push(['METS', Math.round(mets * 100) / 100]);
-              if (start) detailRows.push(['Start', start]);
-              if (Number.isFinite(avgHr)) detailRows.push(['Medelpuls', `${Math.round(avgHr)} bpm`]);
-              if (Number.isFinite(maxHr)) detailRows.push(['Maxpuls', `${Math.round(maxHr)} bpm`]);
-            }
-
-            const details = detailRows
-              .map(([label, value]) => `<div class="mfp-training-detail"><span>${label}</span><b>${value}</b></div>`)
-              .join('');
-
-            const toggleId = `mfp-workout-${index}`;
             return `
-              <div class="mfp-expand-row">
-                <input class="mfp-toggle" type="checkbox" id="${toggleId}">
-                <label class="mfp-expand-head" for="${toggleId}">
-                  <span class="mfp-workout-name">${name}</span>
-                  <span class="mfp-summary-right">${summaryParts.join(' · ') || 'Detaljer'} <span class="mfp-chevron">⌄</span></span>
-                </label>
-                <div class="mfp-training-body">${details}</div>
+              <div class="mfp-workout-row">
+                <span class="mfp-workout-name">${name}</span>
+                <span class="mfp-workout-right">${parts.join(' · ') || 'Detaljer'} <span class="mfp-chevron">›</span></span>
               </div>`;
           }).join('');
         ]]]
@@ -327,7 +201,6 @@ cards:
           - width: 100%
         workouts:
           - width: 100%
-          - pointer-events: auto
     extra_styles: |
       .mfp-training-head {
         display: flex;
@@ -338,62 +211,28 @@ cards:
       .mfp-training-head span:first-child { font-size: 20px; font-weight: 600; }
       .mfp-training-head span:last-child { font-size: 13px; opacity: .55; white-space: nowrap; }
       .mfp-empty { opacity: .6; padding: 8px 0; }
-      .mfp-expand-row {
-        position: relative;
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.045);
-        overflow: hidden;
-      }
-      .mfp-expand-row + .mfp-expand-row { margin-top: 10px; }
-      .mfp-toggle {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-      }
-      .mfp-expand-head {
+      .mfp-workout-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 14px;
         padding: 15px 16px;
-        cursor: pointer;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.045);
         font-size: 15px;
         font-weight: 600;
-        user-select: none;
       }
+      .mfp-workout-row + .mfp-workout-row { margin-top: 10px; }
       .mfp-workout-name {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .mfp-summary-right { font-size: 14px; font-weight: 500; opacity: .72; white-space: nowrap; }
-      .mfp-chevron {
-        display: inline-block;
-        margin-left: 7px;
-        opacity: .45;
-        transition: transform .18s ease;
-      }
-      .mfp-training-body {
-        display: none;
-        padding: 5px 16px 10px;
-      }
-      .mfp-toggle:checked + .mfp-expand-head {
-        border-bottom: 1px solid rgba(128, 128, 128, .14);
-      }
-      .mfp-toggle:checked + .mfp-expand-head .mfp-chevron {
-        transform: rotate(180deg);
-      }
-      .mfp-toggle:checked + .mfp-expand-head + .mfp-training-body {
-        display: block;
-      }
-      .mfp-training-detail {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 7px 0;
+      .mfp-workout-right {
         font-size: 14px;
+        font-weight: 500;
+        opacity: .72;
+        white-space: nowrap;
       }
-      .mfp-training-detail + .mfp-training-detail { border-top: 1px solid rgba(128, 128, 128, .10); }
-      .mfp-training-detail span { opacity: .6; }
-      .mfp-training-detail b { font-weight: 600; white-space: nowrap; }
+      .mfp-chevron { margin-left: 7px; opacity: .35; }
