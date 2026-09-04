@@ -14,6 +14,8 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 - Read-only exercise diary with separate exercise totals and partner calorie-adjustment metadata.
 - Preserves the distinction between a nutrient that is explicitly `0` and a nutrient that MyFitnessPal did not provide.
 - Reads MyFitnessPal nutrient goals and exposes goal, remaining amount and percentage of goal when available.
+- Applies MyFitnessPal exercise calories and partner calorie adjustments to the effective daily calorie/macro goals using MyFitnessPal's own exercise-energy allocation settings.
+- Preserves the selected unadjusted goal bundle separately as `base_goals` for diagnostics.
 - Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals, goals and water intake.
 - Normalizes cardio and strength exercise entries without counting Garmin Connect calorie-adjustment entries as workouts.
 - Bundles a first-party Lovelace dashboard card during the 0.4.0 beta cycle.
@@ -52,9 +54,11 @@ The following secondary nutrient sensors are created but disabled by default. En
 
 These secondary sensors reuse the diary data already fetched by the coordinator and therefore add no extra MyFitnessPal API requests. If MyFitnessPal does not provide a particular nutrient for the foods logged that day, the corresponding sensor remains unavailable/unknown rather than pretending the value is zero.
 
-The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, effective goals, remaining amounts and `water_ml`.
+The **Nutrition diary** sensor exposes today's normalized food entries as attributes, including meal, food name, brand, servings, serving size and nutrients. It also exposes daily totals, unadjusted `base_goals`, effective `goals`, `remaining`, `goal_adjustment_calories` and `water_ml`.
 
-The **Exercise diary** sensor exposes today's normalized real exercise entries separately from MyFitnessPal partner calorie adjustments. Its state is the number of real exercise entries, not the number of raw `exercise_entry` objects returned by MyFitnessPal. Garmin Connect calorie-adjustment entries are therefore preserved as metadata but excluded from exercise count, duration and calorie totals.
+When MyFitnessPal is configured to add exercise energy back to the daily budget, the effective calorie target includes both real exercise calories and partner calorie-adjustment entries. Macro goals are adjusted with MyFitnessPal's `exercise_carbohydrates_percentage`, `exercise_fat_percentage` and `exercise_protein_percentage` settings rather than a hard-coded macro ratio. This means a negative Garmin Connect calorie adjustment can reduce the effective daily calorie and macro targets even when a real workout was also logged.
+
+The **Exercise diary** sensor exposes today's normalized real exercise entries separately from MyFitnessPal partner calorie adjustments. Its state is the number of real exercise entries, not the number of raw `exercise_entry` objects returned by MyFitnessPal. Garmin Connect calorie-adjustment entries are therefore preserved as metadata but excluded from exercise count, duration and the dedicated real-exercise calorie total. The combined exercise/partner value used for effective goal calculation is exposed separately as `goal_adjustment_calories`.
 
 Cardio entries can include duration, calories, start time, METS and optional heart-rate values. Tested strength entries include sets, reps per set, total reps and weight. Strength weight is normalized internally to kilograms while the raw MyFitnessPal value/unit is preserved in the diary metadata. In the tested account MyFitnessPal returned strength weight in pounds even though the app was configured metrically.
 
@@ -68,11 +72,12 @@ The repository includes read-only Lovelace examples inspired by the information 
 
 Starting with the 0.4.0 beta development cycle, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
 
-As of `0.4.0-beta.6`, the first-party card contains the complete dashboard flow:
+As of `0.4.0-beta.7`, the first-party card contains the complete dashboard flow:
 
-- Calories with consumed amount, goal, remaining amount and progress bar
+- Calories with consumed amount, effective daily goal and remaining/over amount
+- progress bars that use a striped overflow segment when calories or macros exceed the effective goal
 - subtle MyFitnessPal branding using the bundled `icon.png`
-- Carbohydrates, Fat and Protein with individual goal progress bars
+- Carbohydrates, Fat and Protein with exercise-adjusted daily targets and individual progress bars
 - compact Water / Fiber / Sugar row
 - dynamic Nutrition details that only show secondary nutrients MyFitnessPal actually supplied
 - Nutrition details collapsed by default, with a compact summary showing how many secondary nutrient values are available
@@ -191,16 +196,17 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 - `main` tracks the current tested/stable version.
 - `dev` is used for active development and UI experiments before promotion to `main`.
-- Before a prerelease is tagged, manifest version wiring and frontend JavaScript syntax are validated by the `Release sanity` GitHub Actions workflow.
-- Release order is: finish code → bump version/cache wiring → verify the green sanity check → create the GitHub tag/release.
+- Pushes to development are checked with Python/Ruff, frontend syntax/ESLint, Hassfest/HACS validation, CodeQL and release-version sanity checks.
+- Prerelease publishing waits for the required checks on the exact release commit before creating its tag and GitHub prerelease.
+- Release order is: finish code → bump version/cache wiring → verify all required checks → publish the verified prerelease/tag.
 
 ## Current status
 
 Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.4.0-beta.6**
+Current development version on `dev`: **0.4.0-beta.7**
 
-The 0.4.0 beta adds read-only exercise diary support and is now testing the complete bundled first-party Lovelace dashboard before promotion to a stable release.
+The 0.4.0 beta adds read-only exercise diary support and a bundled first-party Lovelace dashboard. Beta.7 is testing MyFitnessPal-compatible exercise-adjusted goals and over-goal progress visualization before promotion to a stable release.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
