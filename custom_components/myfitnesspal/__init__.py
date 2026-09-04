@@ -17,7 +17,7 @@ PLATFORMS = [Platform.SENSOR]
 
 _FRONTEND_URL = "/myfitnesspal_static"
 _FRONTEND_PATH = Path(__file__).parent / "frontend"
-_LOADER_URL = f"{_FRONTEND_URL}/ha-myfitnesspal-loader.js?v=0.4.0-beta.6"
+_LOADER_URL = f"{_FRONTEND_URL}/ha-myfitnesspal-loader.js?v=0.4.0-beta.7"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
