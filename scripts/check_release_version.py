@@ -46,6 +46,17 @@ if loader_match.group(1) != version:
         f"frontend loader version {loader_match.group(1)!r} does not match manifest {version!r}"
     )
 
+card_match = re.search(
+    r'HA_MFP_CARD_VERSION\s*=\s*"([^"]+)"',
+    card_text,
+)
+if not card_match:
+    fail("frontend card has no HA_MFP_CARD_VERSION")
+if card_match.group(1) != version:
+    fail(
+        f"frontend card version {card_match.group(1)!r} does not match manifest {version!r}"
+    )
+
 if 'customElements.define("ha-myfitnesspal-card"' not in card_text:
     fail("card module does not register ha-myfitnesspal-card")
 
