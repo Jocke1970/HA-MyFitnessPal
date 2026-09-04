@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0-beta.7
+
+- Calculate MyFitnessPal's effective daily calorie goal from the selected base/day goal plus real exercise calories and partner calorie adjustments when exercise energy is assigned to goals.
+- Apply MyFitnessPal's own exercise carbohydrate, fat and protein percentages when adjusting macro targets instead of scaling macros with a hard-coded ratio.
+- Preserve the unadjusted values as `base_goals` while exposing exercise-adjusted values through `goals` and `remaining`.
+- Expose `goal_adjustment_calories` on the Nutrition diary and Exercise diary sensors for diagnostics.
+- Add `base_goal` alongside the effective `goal` on nutrient sensors.
+- Show `över` / `over` instead of clipping calorie remainder at zero when consumption exceeds the effective goal.
+- Add striped over-goal segments to calorie and macro progress bars, matching MyFitnessPal's visual distinction between the goal portion and the amount above goal.
+- Extend release sanity validation so the card's `HA_MFP_CARD_VERSION` must match the manifest version.
+
 ## 0.4.0-beta.6
 
 - Add the bundled `icon.png` to the first-party card header for subtle MyFitnessPal branding.
