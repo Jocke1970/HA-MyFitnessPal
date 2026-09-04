@@ -1,10 +1,11 @@
-const HA_MFP_CARD_VERSION = "0.4.0-beta.6";
+const HA_MFP_CARD_VERSION = "0.4.0-beta.7";
 const HA_MFP_ICON_URL = new URL(`./icon.png?v=${HA_MFP_CARD_VERSION}`, import.meta.url).href;
 
 const I18N = {
   sv: {
     caloriesTitle: "Kalorier",
     remaining: "kvar",
+    over: "över",
     carbohydrates: "Kolhydrater",
     fat: "Fett",
     protein: "Protein",
@@ -53,6 +54,7 @@ const I18N = {
   en: {
     caloriesTitle: "Calories",
     remaining: "remaining",
+    over: "over",
     carbohydrates: "Carbs",
     fat: "Fat",
     protein: "Protein",
@@ -203,11 +205,40 @@ class HAMyFitnessPalCard extends HTMLElement {
     }).format(number);
   }
 
-  _percent(value, goal) {
+  _progress(value, goal) {
     const current = this._number(value);
     const target = this._number(goal);
-    if (!Number.isFinite(current) || !Number.isFinite(target) || target <= 0) return 0;
-    return Math.min(100, Math.max(0, (current / target) * 100));
+    if (!Number.isFinite(current) || !Number.isFinite(target) || target <= 0) {
+      return { primary: 0, overflow: 0, over: false };
+    }
+
+    const safeCurrent = Math.max(0, current);
+    if (safeCurrent <= target) {
+      return {
+        primary: Math.min(100, (safeCurrent / target) * 100),
+        overflow: 0,
+        over: false,
+      };
+    }
+
+    return {
+      primary: (target / safeCurrent) * 100,
+      overflow: ((safeCurrent - target) / safeCurrent) * 100,
+      over: true,
+    };
+  }
+
+  _progressBar(value, goal, className, large = false) {
+    const progress = this._progress(value, goal);
+    const classes = ["track", large ? "large-track" : "", progress.over ? "over-goal" : ""]
+      .filter(Boolean)
+      .join(" ");
+
+    return `
+      <div class="${classes}">
+        <div class="fill ${className}-fill" style="width:${progress.primary}%"></div>
+        ${progress.over ? `<div class="overflow-fill ${className}-overflow" style="width:${progress.overflow}%"></div>` : ""}
+      </div>`;
   }
 
   _normalizeMeal(value) {
@@ -327,8 +358,8 @@ class HAMyFitnessPalCard extends HTMLElement {
 
     const valueText = Number.isFinite(value) ? `${this._formatNumber(value)} kcal` : "–";
     const goalText = Number.isFinite(goal) ? this._formatNumber(goal) : "–";
-    const remainingText = Number.isFinite(left) ? this._formatNumber(Math.max(0, left)) : "–";
-    const percent = this._percent(value, goal);
+    const remainingText = Number.isFinite(left) ? this._formatNumber(Math.abs(left)) : "–";
+    const remainingLabel = Number.isFinite(left) && left < 0 ? t.over : t.remaining;
 
     return `
       <ha-card class="mfp-card calories-card">
@@ -338,9 +369,9 @@ class HAMyFitnessPalCard extends HTMLElement {
         </div>
         <div class="calories-line">
           <div><span class="main-value">${valueText}</span><span class="muted"> / ${goalText}</span></div>
-          <div><span class="remaining-value">${remainingText}</span><span class="muted"> ${t.remaining}</span></div>
+          <div><span class="remaining-value">${remainingText}</span><span class="muted"> ${remainingLabel}</span></div>
         </div>
-        <div class="track large-track"><div class="fill calories-fill" style="width:${percent}%"></div></div>
+        ${this._progressBar(value, goal, "calories", true)}
       </ha-card>`;
   }
 
@@ -349,13 +380,12 @@ class HAMyFitnessPalCard extends HTMLElement {
     const goalNumber = this._number(goal);
     const valueText = Number.isFinite(valueNumber) ? `${this._formatNumber(valueNumber)} g` : "–";
     const goalText = Number.isFinite(goalNumber) ? this._formatNumber(goalNumber) : "–";
-    const percent = this._percent(valueNumber, goalNumber);
 
     return `
       <div class="macro-item">
         <div class="macro-title">${label}</div>
         <div class="macro-value">${valueText} <span>/ ${goalText}</span></div>
-        <div class="track"><div class="fill ${className}" style="width:${percent}%"></div></div>
+        ${this._progressBar(valueNumber, goalNumber, className)}
       </div>`;
   }
 
@@ -368,9 +398,9 @@ class HAMyFitnessPalCard extends HTMLElement {
     return `
       <ha-card class="mfp-card macros-card">
         <div class="macro-grid">
-          ${this._macroBlock(t.carbohydrates, totals.carbohydrates, goals.carbohydrates, "carbs-fill")}
-          ${this._macroBlock(t.fat, totals.fat, goals.fat, "fat-fill")}
-          ${this._macroBlock(t.protein, totals.protein, goals.protein, "protein-fill")}
+          ${this._macroBlock(t.carbohydrates, totals.carbohydrates, goals.carbohydrates, "carbs")}
+          ${this._macroBlock(t.fat, totals.fat, goals.fat, "fat")}
+          ${this._macroBlock(t.protein, totals.protein, goals.protein, "protein")}
         </div>
       </ha-card>`;
   }
@@ -678,6 +708,7 @@ class HAMyFitnessPalCard extends HTMLElement {
         }
 
         .track {
+          position: relative;
           width: 100%;
           height: 14px;
           border-radius: 999px;
@@ -685,16 +716,66 @@ class HAMyFitnessPalCard extends HTMLElement {
           background: color-mix(in srgb, var(--primary-text-color) 18%, transparent);
         }
 
-        .fill {
-          height: 100%;
-          border-radius: inherit;
+        .fill,
+        .overflow-fill {
+          position: absolute;
+          top: 0;
+          bottom: 0;
           transition: width .35s ease;
+        }
+
+        .fill {
+          left: 0;
+          border-radius: inherit;
+        }
+
+        .overflow-fill {
+          right: 0;
+          box-sizing: border-box;
+          border-radius: 0 999px 999px 0;
+          box-shadow: -4px 0 0 var(--ha-card-background, var(--card-background-color));
+        }
+
+        .over-goal .fill {
+          border-radius: 999px 0 0 999px;
         }
 
         .calories-fill { background: #18bdf2; }
         .carbs-fill { background: #00c9bd; }
         .fat-fill { background: #cc62df; }
         .protein-fill { background: #ffac18; }
+
+        .calories-overflow {
+          background: repeating-linear-gradient(
+            135deg,
+            #18bdf2 0 6px,
+            color-mix(in srgb, #18bdf2 22%, var(--ha-card-background, var(--card-background-color))) 6px 12px
+          );
+        }
+
+        .carbs-overflow {
+          background: repeating-linear-gradient(
+            135deg,
+            #00c9bd 0 6px,
+            color-mix(in srgb, #00c9bd 22%, var(--ha-card-background, var(--card-background-color))) 6px 12px
+          );
+        }
+
+        .fat-overflow {
+          background: repeating-linear-gradient(
+            135deg,
+            #cc62df 0 6px,
+            color-mix(in srgb, #cc62df 22%, var(--ha-card-background, var(--card-background-color))) 6px 12px
+          );
+        }
+
+        .protein-overflow {
+          background: repeating-linear-gradient(
+            135deg,
+            #ffac18 0 6px,
+            color-mix(in srgb, #ffac18 22%, var(--ha-card-background, var(--card-background-color))) 6px 12px
+          );
+        }
 
         .macros-card {
           padding: 24px 26px 26px;
