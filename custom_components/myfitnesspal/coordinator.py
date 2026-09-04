@@ -37,9 +37,11 @@ class MyFitnessPalData:
     date: str
     totals: dict[str, float]
     entries: list[dict[str, Any]]
+    base_goals: dict[str, float]
     goals: dict[str, float]
     goal_source: str
     remaining: dict[str, float]
+    goal_adjustment_calories: float | None
     water_ml: float | None
     exercise_entries: list[dict[str, Any]] | None
     calorie_adjustments: list[dict[str, Any]] | None
@@ -66,12 +68,15 @@ def _normalize_nutrients(raw: dict[str, Any] | None) -> dict[str, float]:
     return out
 
 
-def _effective_goals(raw: dict[str, Any], target_date: date) -> tuple[dict[str, float], str]:
-    """Return the effective numeric nutrition goals for a date.
+def _effective_goals(
+    raw: dict[str, Any], target_date: date
+) -> tuple[dict[str, float], str, dict[str, Any]]:
+    """Return the base numeric goal bundle and raw goal config for a date.
 
     MFP provides a default goal plus optional per-day overrides. We only select
     a daily override when its day_of_week can be matched unambiguously; otherwise
-    we safely fall back to default_goal.
+    we safely fall back to default_goal. Exercise energy is applied separately
+    after the exercise diary has been fetched.
     """
     selected = raw.get("default_goal") or {}
     source = "default"
@@ -98,7 +103,62 @@ def _effective_goals(raw: dict[str, Any], target_date: date) -> tuple[dict[str, 
             source = "daily"
             break
 
-    return _normalize_nutrients(selected), source
+    return _normalize_nutrients(selected), source, selected
+
+
+def _assigns_exercise_energy(goal_config: dict[str, Any]) -> bool:
+    """Return whether MFP assigns exercise energy to the day's nutrition goals."""
+    value = goal_config.get("assign_exercise_energy")
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, Number):
+        return bool(value)
+
+    normalized = str(value or "").strip().lower()
+    return normalized not in {"", "0", "false", "no", "none", "off", "disabled"}
+
+
+def _percentage_fraction(value: Any) -> float | None:
+    """Normalize an MFP percentage field to a 0..1 fraction."""
+    percentage = _nutrient_value(value)
+    if percentage is None or percentage < 0:
+        return None
+    return percentage / 100 if percentage > 1 else percentage
+
+
+def _apply_exercise_energy_to_goals(
+    base_goals: dict[str, float],
+    goal_config: dict[str, Any],
+    goal_adjustment_calories: float | None,
+) -> dict[str, float]:
+    """Apply MFP's exercise-energy allocation to calorie and macro goals."""
+    goals = dict(base_goals)
+    if (
+        goal_adjustment_calories is None
+        or not _assigns_exercise_energy(goal_config)
+    ):
+        return goals
+
+    energy = goals.get("energy")
+    if energy is not None:
+        goals["energy"] = energy + goal_adjustment_calories
+
+    macro_rules = {
+        "carbohydrates": ("exercise_carbohydrates_percentage", 4.0),
+        "fat": ("exercise_fat_percentage", 9.0),
+        "protein": ("exercise_protein_percentage", 4.0),
+    }
+    for nutrient, (percentage_key, calories_per_gram) in macro_rules.items():
+        base_value = goals.get(nutrient)
+        fraction = _percentage_fraction(goal_config.get(percentage_key))
+        if base_value is None or fraction is None:
+            continue
+        goals[nutrient] = (
+            base_value
+            + (goal_adjustment_calories * fraction / calories_per_gram)
+        )
+
+    return goals
 
 
 def _remaining_values(
@@ -227,8 +287,8 @@ def _normalize_calorie_adjustment(entry: dict[str, Any]) -> dict[str, Any]:
 
 def _normalize_exercise_diary(
     entries: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float, float]:
-    """Split real exercise from calorie adjustments and calculate daily totals."""
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float, float, float]:
+    """Split real exercise from adjustments and calculate daily exercise totals."""
     exercise_entries: list[dict[str, Any]] = []
     calorie_adjustments: list[dict[str, Any]] = []
 
@@ -241,6 +301,10 @@ def _normalize_exercise_diary(
     exercise_calories = sum(
         entry.get("calories") or 0.0 for entry in exercise_entries
     )
+    adjustment_calories = sum(
+        entry.get("calories") or 0.0 for entry in calorie_adjustments
+    )
+    goal_adjustment_calories = exercise_calories + adjustment_calories
     exercise_duration_minutes = sum(
         entry.get("duration_minutes") or 0.0 for entry in exercise_entries
     )
@@ -250,6 +314,7 @@ def _normalize_exercise_diary(
         calorie_adjustments,
         round(exercise_calories, 2),
         round(exercise_duration_minutes, 2),
+        round(goal_adjustment_calories, 2),
     )
 
 
@@ -282,7 +347,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         entries = self._client.get_food_diary(target_date)
         raw_goals = self._client.get_goals()
         totals = _sum_totals(entries)
-        goals, goal_source = _effective_goals(raw_goals, target_date)
+        base_goals, goal_source, goal_config = _effective_goals(raw_goals, target_date)
 
         # Water is exposed by MFP through a separate website JSON endpoint. Keep
         # it optional so a water-endpoint problem never takes down core diary data.
@@ -298,6 +363,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         calorie_adjustments: list[dict[str, Any]] | None = None
         exercise_calories: float | None = None
         exercise_duration_minutes: float | None = None
+        goal_adjustment_calories: float | None = None
         try:
             raw_exercise = self._client.get_exercise_diary(target_date)
             (
@@ -305,6 +371,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
                 calorie_adjustments,
                 exercise_calories,
                 exercise_duration_minutes,
+                goal_adjustment_calories,
             ) = _normalize_exercise_diary(raw_exercise)
         except MfpAuthError:
             raise
@@ -315,13 +382,21 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         except httpx.HTTPError as err:
             _LOGGER.debug("Could not read MyFitnessPal exercise diary: %s", err)
 
+        goals = _apply_exercise_energy_to_goals(
+            base_goals,
+            goal_config,
+            goal_adjustment_calories,
+        )
+
         data = MyFitnessPalData(
             date=target_date.isoformat(),
             totals=totals,
             entries=_normalize_entries(entries),
+            base_goals=base_goals,
             goals=goals,
             goal_source=goal_source,
             remaining=_remaining_values(totals, goals),
+            goal_adjustment_calories=goal_adjustment_calories,
             water_ml=water_ml,
             exercise_entries=exercise_entries,
             calorie_adjustments=calorie_adjustments,
