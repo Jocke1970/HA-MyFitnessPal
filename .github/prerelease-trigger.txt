@@ -1,0 +1,4 @@
+HA-MyFitnessPal prerelease trigger
+Current candidate: v0.4.0-beta.7
+
+This file exists only to provide a small, auditable commit that triggers the guarded prerelease workflow.
