@@ -227,14 +227,17 @@ class MyFitnessPalNutrientSensor(MyFitnessPalEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Expose goal and remaining value when MFP provides enough data."""
+        """Expose base/effective goals and remaining value when available."""
         key = self.entity_description.nutrient_key
+        base_goal = self.coordinator.data.base_goals.get(key)
         goal = self.coordinator.data.goals.get(key)
         remaining = self.coordinator.data.remaining.get(key)
         attrs: dict[str, Any] = {
             "date": self.coordinator.data.date,
             "goal_source": self.coordinator.data.goal_source,
         }
+        if base_goal is not None:
+            attrs["base_goal"] = base_goal
         if goal is not None:
             attrs["goal"] = goal
         if remaining is not None:
@@ -285,13 +288,15 @@ class MyFitnessPalDiarySensor(MyFitnessPalEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the normalized diary and totals."""
+        """Return the normalized diary, totals and effective goals."""
         return {
             "date": self.coordinator.data.date,
             "entries": self.coordinator.data.entries,
             "totals": self.coordinator.data.totals,
+            "base_goals": self.coordinator.data.base_goals,
             "goals": self.coordinator.data.goals,
             "goal_source": self.coordinator.data.goal_source,
+            "goal_adjustment_calories": self.coordinator.data.goal_adjustment_calories,
             "remaining": self.coordinator.data.remaining,
             "water_ml": self.coordinator.data.water_ml,
         }
@@ -378,5 +383,6 @@ class MyFitnessPalExerciseDiarySensor(MyFitnessPalExerciseEntity):
             "entries": self.coordinator.data.exercise_entries,
             "calorie_adjustments": self.coordinator.data.calorie_adjustments,
             "exercise_calories": self.coordinator.data.exercise_calories,
+            "goal_adjustment_calories": self.coordinator.data.goal_adjustment_calories,
             "exercise_duration_minutes": self.coordinator.data.exercise_duration_minutes,
         }
