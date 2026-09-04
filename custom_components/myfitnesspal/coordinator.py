@@ -75,10 +75,12 @@ def _effective_goals(
 
     MFP provides a default goal plus optional per-day overrides. We only select
     a daily override when its day_of_week can be matched unambiguously; otherwise
-    we safely fall back to default_goal. Exercise energy is applied separately
-    after the exercise diary has been fetched.
+    we safely fall back to default_goal. Daily overrides inherit any exercise
+    allocation metadata omitted from the default goal. Exercise energy is then
+    applied separately after the exercise diary has been fetched.
     """
-    selected = raw.get("default_goal") or {}
+    default_goal = raw.get("default_goal") or {}
+    selected = dict(default_goal)
     source = "default"
 
     weekday_names = (
@@ -99,7 +101,7 @@ def _effective_goals(
             continue
         normalized = day.strip().lower()
         if normalized in {target_name, target_short}:
-            selected = daily
+            selected = {**default_goal, **daily}
             source = "daily"
             break
 
