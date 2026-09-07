@@ -1,3 +1,4 @@
+# Triggered helper for the verified 0.4.0 stable candidate.
 name: Prepare stable helper
 
 on:
