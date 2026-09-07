@@ -1,0 +1,196 @@
+name: Prepare beta.8 fix
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - .github/workflows/prepare-beta8.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Apply beta.8 blocking-call fix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out triggering dev commit
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Confirm dev has not moved
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin dev
+          if [[ "$(git rev-parse origin/dev)" != "$GITHUB_SHA" ]]; then
+            echo "dev moved after this workflow was triggered; refusing to patch stale code" >&2
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Apply beta.8 fix and version wiring
+        shell: python
+        run: |
+          from pathlib import Path
+
+          coordinator = Path("custom_components/myfitnesspal/coordinator.py")
+          text = coordinator.read_text(encoding="utf-8")
+          old = '''    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+              self.entry = entry
+              self._auth = MfpAuth()
+              stored_session = MfpSession(
+                  user_token=TokenInfo(
+                      access_token="",
+                      refresh_token=entry.data[CONF_REFRESH_TOKEN],
+                      id_token=None,
+                      expires_at=0,
+                  ),
+                  domain_user_id=entry.data[CONF_DOMAIN_USER_ID],
+              )
+              self._client = MfpClient(stored_session, self._auth)
+
+              super().__init__(
+                  hass,
+                  _LOGGER,
+                  config_entry=entry,
+                  name=DOMAIN,
+                  update_interval=DEFAULT_UPDATE_INTERVAL,
+              )
+
+          '''
+          new = '''    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+              self.entry = entry
+              self._client: MfpClient | None = None
+
+              super().__init__(
+                  hass,
+                  _LOGGER,
+                  config_entry=entry,
+                  name=DOMAIN,
+                  update_interval=DEFAULT_UPDATE_INTERVAL,
+              )
+
+          def _create_client(self) -> MfpClient:
+              """Create the synchronous mfp-api clients outside the HA event loop."""
+              auth = MfpAuth()
+              stored_session = MfpSession(
+                  user_token=TokenInfo(
+                      access_token="",
+                      refresh_token=self.entry.data[CONF_REFRESH_TOKEN],
+                      id_token=None,
+                      expires_at=0,
+                  ),
+                  domain_user_id=self.entry.data[CONF_DOMAIN_USER_ID],
+              )
+              return MfpClient(stored_session, auth)
+
+          async def _async_setup(self) -> None:
+              """Initialize blocking HTTP clients in Home Assistant's executor."""
+              if self._client is None:
+                  self._client = await self.hass.async_add_executor_job(
+                      self._create_client
+                  )
+
+          '''
+          if old not in text:
+              raise SystemExit("Expected coordinator constructor block was not found")
+          text = text.replace(old, new, 1)
+
+          old_fetch = '''    def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:
+              entries = self._client.get_food_diary(target_date)
+              raw_goals = self._client.get_goals()
+          '''
+          new_fetch = '''    def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:
+              client = self._client
+              if client is None:
+                  raise UpdateFailed("MyFitnessPal client was not initialized")
+
+              entries = client.get_food_diary(target_date)
+              raw_goals = client.get_goals()
+          '''
+          if old_fetch not in text:
+              raise SystemExit("Expected coordinator _fetch header was not found")
+          text = text.replace(old_fetch, new_fetch, 1)
+          text = text.replace("self._client.get_water(target_date)", "client.get_water(target_date)")
+          text = text.replace("self._client.get_exercise_diary(target_date)", "client.get_exercise_diary(target_date)")
+          text = text.replace(
+              "refresh_token = self._client._session.user_token.refresh_token  # noqa: SLF001",
+              "refresh_token = client._session.user_token.refresh_token  # noqa: SLF001",
+          )
+          old_close = '''    def close(self) -> None:
+              """Close HTTP clients."""
+              self._client.close()
+          '''
+          new_close = '''    def close(self) -> None:
+              """Close HTTP clients."""
+              if self._client is not None:
+                  self._client.close()
+          '''
+          if old_close not in text:
+              raise SystemExit("Expected coordinator close block was not found")
+          text = text.replace(old_close, new_close, 1)
+          coordinator.write_text(text, encoding="utf-8")
+
+          old_version = "0.4.0-beta.7"
+          new_version = "0.4.0-beta.8"
+          version_files = [
+              Path("custom_components/myfitnesspal/manifest.json"),
+              Path("custom_components/myfitnesspal/__init__.py"),
+              Path("custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js"),
+              Path("custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js"),
+              Path("README.md"),
+          ]
+          for path in version_files:
+              value = path.read_text(encoding="utf-8")
+              if old_version not in value:
+                  raise SystemExit(f"Missing {old_version} in {path}")
+              path.write_text(value.replace(old_version, new_version), encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          value = changelog.read_text(encoding="utf-8")
+          heading = "## 0.4.0-beta.8"
+          if heading in value:
+              raise SystemExit("beta.8 changelog section already exists")
+          section = (
+              "## 0.4.0-beta.8\n\n"
+              "- Move synchronous `mfp-api` HTTP client construction into the coordinator's async setup executor so SSL certificate loading no longer blocks Home Assistant's event loop during integration setup.\n"
+              "- Keep normal polling, token refresh handling and config-flow authentication behavior unchanged.\n\n"
+          )
+          marker = "# Changelog\n\n"
+          if marker not in value:
+              raise SystemExit("Changelog header not found")
+          changelog.write_text(value.replace(marker, marker + section, 1), encoding="utf-8")
+
+      - name: Run local safety checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q custom_components/myfitnesspal scripts
+          python scripts/check_release_version.py
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js
+
+      - name: Commit clean beta.8 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/prepare-beta8.yml
+          git add custom_components/myfitnesspal/coordinator.py \
+                  custom_components/myfitnesspal/manifest.json \
+                  custom_components/myfitnesspal/__init__.py \
+                  custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js \
+                  custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js \
+                  README.md CHANGELOG.md
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Fix blocking client setup and prepare v0.4.0-beta.8"
+          git push origin HEAD:dev
