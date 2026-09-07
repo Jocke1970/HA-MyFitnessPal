@@ -18,14 +18,16 @@ Read-only Home Assistant integration for MyFitnessPal, providing today's nutriti
 - Preserves the selected unadjusted goal bundle separately as `base_goals` for diagnostics.
 - Exposes a normalized nutrition diary sensor with individual food entries, serving information, nutrients, totals, goals and water intake.
 - Normalizes cardio and strength exercise entries without counting Garmin Connect calorie-adjustment entries as workouts.
-- Bundles a first-party Lovelace dashboard card during the 0.4.0 beta cycle.
+- Bundles a first-party Lovelace dashboard card.
 - Polls every 15 minutes.
-- Swedish and English entity/config-flow translations.
+- English base strings and a complete Swedish Home Assistant translation.
 - Password is used only during initial login or reauthentication and is not stored by the integration.
 - Refresh-token authentication is used for subsequent updates.
 - No food, weight, exercise, water or goal write methods are called.
 
 ## Sensors
+
+Documentation uses the English entity names below. Home Assistant displays translated names when a supported translation is available, and entity IDs can differ between installations.
 
 The integration enables these sensors by default:
 
@@ -64,13 +66,19 @@ Cardio entries can include duration, calories, start time, METS and optional hea
 
 Exercise polling adds one additional MyFitnessPal diary request per coordinator update. It is fail-soft: if the exercise endpoint fails while the nutrition endpoints still work, the nutrition entities continue updating and the exercise entities become unavailable instead of reporting false zero values.
 
+## Languages
+
+Home Assistant integration strings use English as the base language. A complete Swedish translation is included in `custom_components/myfitnesspal/translations/sv.json`. Other Home Assistant locales fall back to English.
+
+The bundled Lovelace card includes its own English and Swedish UI strings. Set `language: en` or `language: sv` explicitly if desired; otherwise Swedish Home Assistant installations use Swedish and other locales fall back to English.
+
 ## Lovelace dashboard
 
 The repository includes read-only Lovelace examples inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
 
 ### First-party HA-MyFitnessPal card
 
-Starting with the 0.4.0 beta development cycle, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
+Starting with 0.4.0, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
 
 As of `0.4.0-beta.8`, the first-party card contains the complete dashboard flow:
 
@@ -96,15 +104,18 @@ Example:
 
 ```yaml
 type: custom:ha-myfitnesspal-card
-nutrition_entity: sensor.myfitnesspal_naringsdagbok
-exercise_entity: sensor.ovrigt_myfitnesspal_traningsdagbok
-language: sv
+nutrition_entity: sensor.myfitnesspal_nutrition_diary
+exercise_entity: sensor.myfitnesspal_exercise_diary
+language: en
 show_training: true
+show_nutrition_details: true
 ```
 
-`show_nutrition_details: false` can be used to hide the dynamic secondary nutrient section entirely. When enabled, the section is present but starts collapsed for a more compact overview. Entity IDs can differ between installations, so configure the actual entities created by Home Assistant.
+The entity IDs above are examples only. Replace them with the actual entities created in your Home Assistant installation. Existing installations may have localized or user-renamed entity IDs.
 
-See [`examples/lovelace-ha-myfitnesspal-card.yaml`](examples/lovelace-ha-myfitnesspal-card.yaml) for the development example.
+`show_nutrition_details: false` hides the dynamic secondary nutrient section entirely. When enabled, the section is present but starts collapsed for a more compact overview.
+
+See [`examples/lovelace-ha-myfitnesspal-card.yaml`](examples/lovelace-ha-myfitnesspal-card.yaml) for the first-party card example.
 
 ### Original YAML examples
 
@@ -116,22 +127,31 @@ The older YAML examples remain in the repository as references and provide:
 - a dynamic Nutrition details card for secondary nutrients such as saturated fat, cholesterol and sodium
 - a diary card grouped by meal with food entries and calories
 
-Both original examples use the **Nutrition diary sensor as the single data source**. They currently require [`custom:button-card`](https://github.com/custom-cards/button-card).
+Both original examples use the **Nutrition diary sensor as the single data source**. They require [`custom:button-card`](https://github.com/custom-cards/button-card).
 
 - Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
 - English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
 
 They intentionally do **not** include food logging controls because this integration is read-only.
 
-### Screenshots
+### First-party card screenshots
 
 | Swedish | English |
 | --- | --- |
-| <img src="examples/ha-myfitnesspal_se.png" alt="HA-MyFitnessPal Lovelace dashboard in Swedish" width="420"> | <img src="examples/ha-myfitnesspal_en.png" alt="HA-MyFitnessPal Lovelace dashboard in English" width="420"> |
-
-The screenshots currently show the earlier YAML dashboard and will be refreshed as the first-party card UI stabilizes.
+| <img src="examples/ha-myfitnesspal_se.png" alt="HA-MyFitnessPal first-party card in Swedish" width="420"> | <img src="examples/ha-myfitnesspal_en.png" alt="HA-MyFitnessPal first-party card in English" width="420"> |
 
 ## Installation
+
+### HACS
+
+1. Open **HACS → Integrations**.
+2. If HA-MyFitnessPal is not already available, open the HACS menu and add `https://github.com/Jocke1970/HA-MyFitnessPal` as a **Custom repository** with category **Integration**.
+3. Search for **HA-MyFitnessPal** and install it.
+4. Restart Home Assistant.
+5. Open **Settings → Devices & services → Add integration** and search for **MyFitnessPal**.
+6. Enter your MyFitnessPal email/username and password.
+
+For prerelease testing, use the HACS redownload/version selector and choose the requested prerelease tag.
 
 ### Manual installation
 
@@ -161,9 +181,9 @@ The integration currently reads:
 - exercise diary entries
 - partner calorie-adjustment metadata returned with the exercise diary
 
-The pinned upstream client can also read weight measurements, but HA-MyFitnessPal does not poll that endpoint yet. Multi-day reports are intentionally treated carefully because the upstream helper performs one diary request per day rather than using a server-side report endpoint.
+The pinned upstream client can also read weight measurements, but HA-MyFitnessPal does not poll that endpoint. Multi-day reports are intentionally treated carefully because the upstream helper performs one diary request per day rather than using a server-side report endpoint.
 
-See [`docs/read-only-api-scope.md`](docs/read-only-api-scope.md) for the current API map and likely next development steps.
+See [`docs/read-only-api-scope.md`](docs/read-only-api-scope.md) for the current API map and design notes.
 
 It does **not** expose Home Assistant services or entities for writing data back to MyFitnessPal.
 
@@ -195,7 +215,7 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 ## Development workflow
 
 - `main` tracks the current tested/stable version.
-- `dev` is used for active development and UI experiments before promotion to `main`.
+- `dev` is used for active development and prerelease verification before promotion to `main`.
 - Pushes to development are checked with Python/Ruff, frontend syntax/ESLint, Hassfest/HACS validation, CodeQL and release-version sanity checks.
 - Prerelease publishing waits for the required checks on the exact release commit before creating its tag and GitHub prerelease.
 - Release order is: finish code → bump version/cache wiring → verify all required checks → publish the verified prerelease/tag.
@@ -206,9 +226,9 @@ Current stable version on `main`: **0.3.0**
 
 Current development version on `dev`: **0.4.0-beta.8**
 
-The 0.4.0 beta adds read-only exercise diary support and a bundled first-party Lovelace dashboard. Beta.8 is the final prerelease candidate for 0.4.0 and fixes Home Assistant event-loop-safe initialization of the MyFitnessPal HTTP clients.
+Beta.8 is the final prerelease candidate for 0.4.0. The 0.4.0 line adds read-only exercise diary support, MyFitnessPal-compatible exercise-adjusted goals, the bundled first-party Lovelace card, and event-loop-safe initialization of the MyFitnessPal HTTP clients.
 
-This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
+This integration uses an unofficial MyFitnessPal API, so upstream API changes may require future maintenance even after 0.4.0 is released.
 
 ## License
 
