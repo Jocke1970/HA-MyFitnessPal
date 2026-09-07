@@ -1,0 +1,129 @@
+name: Prepare stable release
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Prepare 0.4.0 stable commit
+    if: contains(github.event.head_commit.message, '[prepare-stable]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Apply stable version and documentation
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          version = "0.4.0"
+          beta = "0.4.0-beta.8"
+
+          manifest_path = Path("custom_components/myfitnesspal/manifest.json")
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          if manifest.get("version") != beta:
+              raise SystemExit(f"Unexpected manifest version: {manifest.get('version')!r}")
+          manifest["version"] = version
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+          replacements = {
+              Path("custom_components/myfitnesspal/__init__.py"): [
+                  ("ha-myfitnesspal-loader.js?v=0.4.0-beta.8", "ha-myfitnesspal-loader.js?v=0.4.0"),
+              ],
+              Path("custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js"): [
+                  ('HA_MFP_LOADER_VERSION = "0.4.0-beta.8"', 'HA_MFP_LOADER_VERSION = "0.4.0"'),
+              ],
+              Path("custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js"): [
+                  ('HA_MFP_CARD_VERSION = "0.4.0-beta.8"', 'HA_MFP_CARD_VERSION = "0.4.0"'),
+              ],
+          }
+
+          for path, pairs in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f"Missing expected text in {path}: {old}")
+                  text = text.replace(old, new, 1)
+              path.write_text(text, encoding="utf-8")
+
+          readme_path = Path("README.md")
+          readme = readme_path.read_text(encoding="utf-8")
+          readme_pairs = [
+              ("As of `0.4.0-beta.8`, the first-party card contains the complete dashboard flow:",
+               "As of `0.4.0`, the first-party card contains the complete dashboard flow:"),
+              ("Current stable version on `main`: **0.3.0**",
+               "Current stable version on `main`: **0.4.0**"),
+              ("Current development version on `dev`: **0.4.0-beta.8**",
+               "Current development version on `dev`: **0.4.0**"),
+              ("Beta.8 is the final prerelease candidate for 0.4.0. The 0.4.0 line adds read-only exercise diary support, MyFitnessPal-compatible exercise-adjusted goals, the bundled first-party Lovelace card, and event-loop-safe initialization of the MyFitnessPal HTTP clients.",
+               "Version 0.4.0 is the current stable release. It adds read-only exercise diary support, MyFitnessPal-compatible exercise-adjusted goals, the bundled first-party Lovelace card, event-loop-safe initialization of the MyFitnessPal HTTP clients, and refreshed English-first documentation with Swedish translation support."),
+          ]
+          for old, new in readme_pairs:
+              if old not in readme:
+                  raise SystemExit(f"Missing expected README text: {old}")
+              readme = readme.replace(old, new, 1)
+          readme_path.write_text(readme, encoding="utf-8")
+
+          changelog_path = Path("CHANGELOG.md")
+          changelog = changelog_path.read_text(encoding="utf-8")
+          if "## 0.4.0\n" in changelog:
+              raise SystemExit("Stable 0.4.0 changelog section already exists")
+          stable_notes = """## 0.4.0
+
+- Promote the tested 0.4.0 beta line to stable.
+- Add read-only exercise diary support with separate real-exercise totals and partner calorie-adjustment metadata.
+- Calculate effective daily calorie and macro goals using MyFitnessPal's exercise-energy allocation settings, including Garmin Connect calorie adjustments.
+- Bundle the first-party HA-MyFitnessPal Lovelace card with expandable diary/exercise details, exercise-adjusted goals, over-goal indicators and Swedish/English UI strings.
+- Add optional secondary nutrient sensors without increasing MyFitnessPal API traffic.
+- Keep synchronous MyFitnessPal HTTP client construction and polling outside Home Assistant's event loop.
+- Refresh HACS/manual installation documentation, English sensor examples and first-party card screenshots, and remove obsolete legacy YAML dashboard examples.
+
+"""
+          changelog_path.write_text(changelog.replace("# Changelog\n\n", "# Changelog\n\n" + stable_notes, 1), encoding="utf-8")
+
+          sanity_path = Path(".github/workflows/release-sanity.yml")
+          sanity = sanity_path.read_text(encoding="utf-8")
+          old = "    branches:\n      - dev\n"
+          new = "    branches:\n      - dev\n      - main\n"
+          if old not in sanity:
+              raise SystemExit("Unexpected release-sanity branch block")
+          sanity_path.write_text(sanity.replace(old, new, 1), encoding="utf-8")
+
+      - name: Validate stable wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_release_version.py
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js
+          node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js
+          python -m json.tool custom_components/myfitnesspal/manifest.json >/dev/null
+          grep -F '## 0.4.0' CHANGELOG.md >/dev/null
+          grep -F 'Current stable version on `main`: **0.4.0**' README.md >/dev/null
+
+      - name: Remove one-time preparation workflow
+        run: rm .github/workflows/prepare-stable.yml
+
+      - name: Commit exact stable candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Release 0.4.0 stable [publish-stable]"
+          git push origin HEAD:dev
