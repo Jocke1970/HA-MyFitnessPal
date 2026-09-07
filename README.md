@@ -74,7 +74,7 @@ The bundled Lovelace card includes its own English and Swedish UI strings. Set `
 
 ## Lovelace dashboard
 
-The repository includes read-only Lovelace examples inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
+The repository includes a read-only first-party Lovelace card inspired by the information hierarchy in the MyFitnessPal app while remaining Home Assistant-native.
 
 ### First-party HA-MyFitnessPal card
 
@@ -116,23 +116,6 @@ The entity IDs above are examples only. Replace them with the actual entities cr
 `show_nutrition_details: false` hides the dynamic secondary nutrient section entirely. When enabled, the section is present but starts collapsed for a more compact overview.
 
 See [`examples/lovelace-ha-myfitnesspal-card.yaml`](examples/lovelace-ha-myfitnesspal-card.yaml) for the first-party card example.
-
-### Original YAML examples
-
-The older YAML examples remain in the repository as references and provide:
-
-- a calorie card with consumed, goal, remaining and progress bar
-- carbohydrates, fat and protein with individual goal progress bars
-- a compact Water / Fiber / Sugar row
-- a dynamic Nutrition details card for secondary nutrients such as saturated fat, cholesterol and sodium
-- a diary card grouped by meal with food entries and calories
-
-Both original examples use the **Nutrition diary sensor as the single data source**. They require [`custom:button-card`](https://github.com/custom-cards/button-card).
-
-- Swedish: [`examples/lovelace-mfp-dashboard.yaml`](examples/lovelace-mfp-dashboard.yaml)
-- English: [`examples/lovelace-mfp-dashboard_en.yaml`](examples/lovelace-mfp-dashboard_en.yaml)
-
-They intentionally do **not** include food logging controls because this integration is read-only.
 
 ### First-party card screenshots
 
