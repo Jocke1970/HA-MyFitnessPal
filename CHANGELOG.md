@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Promote the tested 0.4.0 beta line to stable.
+- Add read-only exercise diary support with separate real-exercise totals and partner calorie-adjustment metadata.
+- Calculate effective daily calorie and macro goals using MyFitnessPal's exercise-energy allocation settings, including Garmin Connect calorie adjustments.
+- Bundle the first-party HA-MyFitnessPal Lovelace card with expandable diary/exercise details, exercise-adjusted goals, over-goal indicators and Swedish/English UI strings.
+- Add optional secondary nutrient sensors without increasing MyFitnessPal API traffic.
+- Keep synchronous MyFitnessPal HTTP client construction and polling outside Home Assistant's event loop.
+- Refresh HACS/manual installation documentation, English sensor examples and first-party card screenshots, and remove obsolete legacy YAML dashboard examples.
+
 ## 0.4.0-beta.8
 
 - Move synchronous `mfp-api` HTTP client construction into the coordinator's async setup executor so SSL certificate loading no longer blocks Home Assistant's event loop during integration setup.
