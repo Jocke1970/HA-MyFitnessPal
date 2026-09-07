@@ -1,19 +1,21 @@
-# HA-MyFitnessPal first-party Lovelace dashboard card - Swedish example
+# HA-MyFitnessPal first-party Lovelace dashboard card
 #
 # The card JavaScript is bundled with the integration and auto-loaded by
-# HA-MyFitnessPal. No custom:button-card dependency is required for this card.
+# HA-MyFitnessPal. No custom:button-card dependency or manual Lovelace
+# resource is required.
 #
-# The card renders Calories, macros, Water/Fiber/Sugar, dynamic nutrition
-# details, the expandable food diary and the expandable exercise diary.
-#
-# Tested entity IDs in the development installation:
-#   sensor.myfitnesspal_naringsdagbok
-#   sensor.ovrigt_myfitnesspal_traningsdagbok
+# Entity IDs vary between installations and may be localized or renamed.
+# Replace the example IDs below with the actual Nutrition diary and
+# Exercise diary entities created in your Home Assistant instance.
 
 type: custom:ha-myfitnesspal-card
-nutrition_entity: sensor.myfitnesspal_naringsdagbok
-exercise_entity: sensor.ovrigt_myfitnesspal_traningsdagbok
-language: sv
+nutrition_entity: sensor.myfitnesspal_nutrition_diary
+exercise_entity: sensor.myfitnesspal_exercise_diary
+language: en
 show_training: true
-# Optional: set false to hide the secondary Nutrition details section.
 show_nutrition_details: true
+
+# Supported card languages:
+#   en = English
+#   sv = Swedish
+# Other Home Assistant locales fall back to English.
