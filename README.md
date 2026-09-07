@@ -206,7 +206,7 @@ Current stable version on `main`: **0.3.0**
 
 Current development version on `dev`: **0.4.0-beta.8**
 
-The 0.4.0 beta adds read-only exercise diary support and a bundled first-party Lovelace dashboard. Beta.7 is testing MyFitnessPal-compatible exercise-adjusted goals and over-goal progress visualization before promotion to a stable release.
+The 0.4.0 beta adds read-only exercise diary support and a bundled first-party Lovelace dashboard. Beta.8 is the final prerelease candidate for 0.4.0 and fixes Home Assistant event-loop-safe initialization of the MyFitnessPal HTTP clients.
 
 This is early-stage software built against an unofficial API. Expect changes while the integration is tested and expanded.
 
