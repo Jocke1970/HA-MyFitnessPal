@@ -42,7 +42,7 @@ jobs:
           sed -i 's/Current stable version on `main`: \*\*0.3.0\*\*/Current stable version on `main`: **0.4.0**/' README.md
           sed -i 's/Current development version on `dev`: \*\*0.4.0-beta.8\*\*/Current development version on `dev`: **0.4.0**/' README.md
           sed -i 's/Beta.8 is the final prerelease candidate for 0.4.0. The 0.4.0 line adds read-only exercise diary support, MyFitnessPal-compatible exercise-adjusted goals, the bundled first-party Lovelace card, and event-loop-safe initialization of the MyFitnessPal HTTP clients./Version 0.4.0 is the current stable release. It adds read-only exercise diary support, MyFitnessPal-compatible exercise-adjusted goals, the bundled first-party Lovelace card, event-loop-safe initialization of the MyFitnessPal HTTP clients, and refreshed English-first documentation with Swedish translation support./' README.md
-          grep -F '## 0.4.0' CHANGELOG.md >/dev/null && { echo 'Stable changelog section already exists' >&2; exit 1; } || true
+          grep -Fx '## 0.4.0' CHANGELOG.md >/dev/null && { echo 'Stable changelog section already exists' >&2; exit 1; } || true
           {
             printf '%s\n\n' '# Changelog'
             printf '%s\n\n' '## 0.4.0'
@@ -71,7 +71,7 @@ jobs:
           python -m json.tool custom_components/myfitnesspal/manifest.json >/dev/null
           node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-loader.js
           node --check custom_components/myfitnesspal/frontend/ha-myfitnesspal-card.js
-          grep -F '## 0.4.0' CHANGELOG.md >/dev/null
+          grep -Fx '## 0.4.0' CHANGELOG.md >/dev/null
           grep -F 'Current stable version on `main`: **0.4.0**' README.md >/dev/null
           git diff --check
 
