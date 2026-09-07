@@ -325,17 +325,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
-        self._auth = MfpAuth()
-        stored_session = MfpSession(
-            user_token=TokenInfo(
-                access_token="",
-                refresh_token=entry.data[CONF_REFRESH_TOKEN],
-                id_token=None,
-                expires_at=0,
-            ),
-            domain_user_id=entry.data[CONF_DOMAIN_USER_ID],
-        )
-        self._client = MfpClient(stored_session, self._auth)
+        self._client: MfpClient | None = None
 
         super().__init__(
             hass,
@@ -345,9 +335,34 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
             update_interval=DEFAULT_UPDATE_INTERVAL,
         )
 
+    def _create_client(self) -> MfpClient:
+        """Create synchronous mfp-api clients outside the HA event loop."""
+        auth = MfpAuth()
+        stored_session = MfpSession(
+            user_token=TokenInfo(
+                access_token="",
+                refresh_token=self.entry.data[CONF_REFRESH_TOKEN],
+                id_token=None,
+                expires_at=0,
+            ),
+            domain_user_id=self.entry.data[CONF_DOMAIN_USER_ID],
+        )
+        return MfpClient(stored_session, auth)
+
+    async def _async_setup(self) -> None:
+        """Initialize blocking HTTP clients in Home Assistant's executor."""
+        if self._client is None:
+            self._client = await self.hass.async_add_executor_job(
+                self._create_client
+            )
+
     def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:
-        entries = self._client.get_food_diary(target_date)
-        raw_goals = self._client.get_goals()
+        client = self._client
+        if client is None:
+            raise UpdateFailed("MyFitnessPal client was not initialized")
+
+        entries = client.get_food_diary(target_date)
+        raw_goals = client.get_goals()
         totals = _sum_totals(entries)
         base_goals, goal_source, goal_config = _effective_goals(raw_goals, target_date)
 
@@ -355,7 +370,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         # it optional so a water-endpoint problem never takes down core diary data.
         water_ml: float | None = None
         try:
-            water_ml = _nutrient_value(self._client.get_water(target_date))
+            water_ml = _nutrient_value(client.get_water(target_date))
         except (MfpApiError, httpx.HTTPError) as err:
             _LOGGER.debug("Could not read MyFitnessPal water intake: %s", err)
 
@@ -367,7 +382,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         exercise_duration_minutes: float | None = None
         goal_adjustment_calories: float | None = None
         try:
-            raw_exercise = self._client.get_exercise_diary(target_date)
+            raw_exercise = client.get_exercise_diary(target_date)
             (
                 exercise_entries,
                 calorie_adjustments,
@@ -409,7 +424,7 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
         # mfp-api 0.1.0 does not expose the current session publicly. The package is
         # pinned to a commit, so this isolated access lets us persist rotated refresh
         # tokens without storing the user's MFP password in Home Assistant.
-        refresh_token = self._client._session.user_token.refresh_token  # noqa: SLF001
+        refresh_token = client._session.user_token.refresh_token  # noqa: SLF001
         return data, refresh_token
 
     async def _async_update_data(self) -> MyFitnessPalData:
@@ -438,7 +453,8 @@ class MyFitnessPalCoordinator(DataUpdateCoordinator[MyFitnessPalData]):
 
     def close(self) -> None:
         """Close HTTP clients."""
-        self._client.close()
+        if self._client is not None:
+            self._client.close()
 
     @property
     def account_name(self) -> str:

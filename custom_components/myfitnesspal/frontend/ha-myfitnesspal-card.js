@@ -1,4 +1,4 @@
-const HA_MFP_CARD_VERSION = "0.4.0-beta.7";
+const HA_MFP_CARD_VERSION = "0.4.0-beta.8";
 const HA_MFP_ICON_URL = new URL(`./icon.png?v=${HA_MFP_CARD_VERSION}`, import.meta.url).href;
 
 const I18N = {

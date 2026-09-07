@@ -72,7 +72,7 @@ The repository includes read-only Lovelace examples inspired by the information 
 
 Starting with the 0.4.0 beta development cycle, the integration bundles its own Lovelace Web Component. The integration serves and loads the JavaScript automatically, so the first-party card does not require `custom:button-card` or a manually added Lovelace resource.
 
-As of `0.4.0-beta.7`, the first-party card contains the complete dashboard flow:
+As of `0.4.0-beta.8`, the first-party card contains the complete dashboard flow:
 
 - Calories with consumed amount, effective daily goal and remaining/over amount
 - progress bars that use a striped overflow segment when calories or macros exceed the effective goal
@@ -204,7 +204,7 @@ A major credit goes to **Nathan Walker / Rift-Walker**, creator of [`mfp-api`](h
 
 Current stable version on `main`: **0.3.0**
 
-Current development version on `dev`: **0.4.0-beta.7**
+Current development version on `dev`: **0.4.0-beta.8**
 
 The 0.4.0 beta adds read-only exercise diary support and a bundled first-party Lovelace dashboard. Beta.7 is testing MyFitnessPal-compatible exercise-adjusted goals and over-goal progress visualization before promotion to a stable release.
 

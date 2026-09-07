@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0-beta.8
+
+- Move synchronous `mfp-api` HTTP client construction into the coordinator's async setup executor so SSL certificate loading no longer blocks Home Assistant's event loop during integration setup.
+- Keep normal polling, token refresh handling and config-flow authentication behavior unchanged.
+
 ## 0.4.0-beta.7
 
 - Calculate MyFitnessPal's effective daily calorie goal from the selected base/day goal plus real exercise calories and partner calorie adjustments when exercise energy is assigned to goals.
