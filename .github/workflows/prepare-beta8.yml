@@ -43,99 +43,91 @@ jobs:
 
           coordinator = Path("custom_components/myfitnesspal/coordinator.py")
           text = coordinator.read_text(encoding="utf-8")
-          old = '''    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-              self.entry = entry
-              self._auth = MfpAuth()
-              stored_session = MfpSession(
-                  user_token=TokenInfo(
-                      access_token="",
-                      refresh_token=entry.data[CONF_REFRESH_TOKEN],
-                      id_token=None,
-                      expires_at=0,
-                  ),
-                  domain_user_id=entry.data[CONF_DOMAIN_USER_ID],
-              )
-              self._client = MfpClient(stored_session, self._auth)
 
-              super().__init__(
-                  hass,
-                  _LOGGER,
-                  config_entry=entry,
-                  name=DOMAIN,
-                  update_interval=DEFAULT_UPDATE_INTERVAL,
-              )
+          start_marker = "    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:\n"
+          fetch_marker = "    def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:\n"
+          try:
+              start = text.index(start_marker)
+              end = text.index(fetch_marker, start)
+          except ValueError as err:
+              raise SystemExit("Could not locate coordinator constructor/fetch boundary") from err
 
-          '''
-          new = '''    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-              self.entry = entry
-              self._client: MfpClient | None = None
-
-              super().__init__(
-                  hass,
-                  _LOGGER,
-                  config_entry=entry,
-                  name=DOMAIN,
-                  update_interval=DEFAULT_UPDATE_INTERVAL,
-              )
-
-          def _create_client(self) -> MfpClient:
-              """Create the synchronous mfp-api clients outside the HA event loop."""
-              auth = MfpAuth()
-              stored_session = MfpSession(
-                  user_token=TokenInfo(
-                      access_token="",
-                      refresh_token=self.entry.data[CONF_REFRESH_TOKEN],
-                      id_token=None,
-                      expires_at=0,
-                  ),
-                  domain_user_id=self.entry.data[CONF_DOMAIN_USER_ID],
-              )
-              return MfpClient(stored_session, auth)
-
-          async def _async_setup(self) -> None:
-              """Initialize blocking HTTP clients in Home Assistant's executor."""
-              if self._client is None:
-                  self._client = await self.hass.async_add_executor_job(
-                      self._create_client
-                  )
-
-          '''
-          if old not in text:
-              raise SystemExit("Expected coordinator constructor block was not found")
-          text = text.replace(old, new, 1)
-
-          old_fetch = '''    def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:
-              entries = self._client.get_food_diary(target_date)
-              raw_goals = self._client.get_goals()
-          '''
-          new_fetch = '''    def _fetch(self, target_date: date) -> tuple[MyFitnessPalData, str | None]:
-              client = self._client
-              if client is None:
-                  raise UpdateFailed("MyFitnessPal client was not initialized")
-
-              entries = client.get_food_diary(target_date)
-              raw_goals = client.get_goals()
-          '''
-          if old_fetch not in text:
-              raise SystemExit("Expected coordinator _fetch header was not found")
-          text = text.replace(old_fetch, new_fetch, 1)
-          text = text.replace("self._client.get_water(target_date)", "client.get_water(target_date)")
-          text = text.replace("self._client.get_exercise_diary(target_date)", "client.get_exercise_diary(target_date)")
-          text = text.replace(
-              "refresh_token = self._client._session.user_token.refresh_token  # noqa: SLF001",
-              "refresh_token = client._session.user_token.refresh_token  # noqa: SLF001",
+          new_block = (
+              "    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:\n"
+              "        self.entry = entry\n"
+              "        self._client: MfpClient | None = None\n"
+              "\n"
+              "        super().__init__(\n"
+              "            hass,\n"
+              "            _LOGGER,\n"
+              "            config_entry=entry,\n"
+              "            name=DOMAIN,\n"
+              "            update_interval=DEFAULT_UPDATE_INTERVAL,\n"
+              "        )\n"
+              "\n"
+              "    def _create_client(self) -> MfpClient:\n"
+              "        \"\"\"Create synchronous mfp-api clients outside the HA event loop.\"\"\"\n"
+              "        auth = MfpAuth()\n"
+              "        stored_session = MfpSession(\n"
+              "            user_token=TokenInfo(\n"
+              "                access_token=\"\",\n"
+              "                refresh_token=self.entry.data[CONF_REFRESH_TOKEN],\n"
+              "                id_token=None,\n"
+              "                expires_at=0,\n"
+              "            ),\n"
+              "            domain_user_id=self.entry.data[CONF_DOMAIN_USER_ID],\n"
+              "        )\n"
+              "        return MfpClient(stored_session, auth)\n"
+              "\n"
+              "    async def _async_setup(self) -> None:\n"
+              "        \"\"\"Initialize blocking HTTP clients in Home Assistant's executor.\"\"\"\n"
+              "        if self._client is None:\n"
+              "            self._client = await self.hass.async_add_executor_job(\n"
+              "                self._create_client\n"
+              "            )\n"
+              "\n"
           )
-          old_close = '''    def close(self) -> None:
-              """Close HTTP clients."""
-              self._client.close()
-          '''
-          new_close = '''    def close(self) -> None:
-              """Close HTTP clients."""
-              if self._client is not None:
-                  self._client.close()
-          '''
+          text = text[:start] + new_block + text[end:]
+
+          old_fetch_body = (
+              "        entries = self._client.get_food_diary(target_date)\n"
+              "        raw_goals = self._client.get_goals()\n"
+          )
+          new_fetch_body = (
+              "        client = self._client\n"
+              "        if client is None:\n"
+              "            raise UpdateFailed(\"MyFitnessPal client was not initialized\")\n"
+              "\n"
+              "        entries = client.get_food_diary(target_date)\n"
+              "        raw_goals = client.get_goals()\n"
+          )
+          if old_fetch_body not in text:
+              raise SystemExit("Could not locate coordinator fetch body")
+          text = text.replace(old_fetch_body, new_fetch_body, 1)
+
+          replacements = {
+              "self._client.get_water(target_date)": "client.get_water(target_date)",
+              "self._client.get_exercise_diary(target_date)": "client.get_exercise_diary(target_date)",
+              "refresh_token = self._client._session.user_token.refresh_token  # noqa: SLF001": "refresh_token = client._session.user_token.refresh_token  # noqa: SLF001",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"Could not locate expected coordinator expression: {old}")
+              text = text.replace(old, new, 1)
+
+          old_close = (
+              "    def close(self) -> None:\n"
+              "        \"\"\"Close HTTP clients.\"\"\"\n"
+              "        self._client.close()\n"
+          )
+          new_close = (
+              "    def close(self) -> None:\n"
+              "        \"\"\"Close HTTP clients.\"\"\"\n"
+              "        if self._client is not None:\n"
+              "            self._client.close()\n"
+          )
           if old_close not in text:
-              raise SystemExit("Expected coordinator close block was not found")
+              raise SystemExit("Could not locate coordinator close method")
           text = text.replace(old_close, new_close, 1)
           coordinator.write_text(text, encoding="utf-8")
 
